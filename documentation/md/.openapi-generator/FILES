@@ -1,0 +1,13 @@
+.openapi-generator-ignore
+Apis/DiagApi.md
+Apis/MetricsApi.md
+Models/DumpType.md
+Models/EventLevel.md
+Models/EventPipeConfiguration.md
+Models/EventPipeProvider.md
+Models/LogLevel.md
+Models/ProcessIdentifier.md
+Models/ProcessInfo.md
+Models/TraceProfile.md
+Models/ValidationProblemDetails.md
+README.md
