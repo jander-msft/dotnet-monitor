@@ -29,5 +29,15 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon
                 public const string Continue = nameof(Continue);
             }
         }
+
+        public static class BusyWait
+        {
+            public const string Name = nameof(BusyWait);
+
+            public static class Commands
+            {
+                public const string Continue = nameof(Continue);
+            }
+        }
     }
 }
