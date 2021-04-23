@@ -15,6 +15,7 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp
         {
             return new CommandLineBuilder()
                 .AddCommand(AsyncWaitScenario.Command())
+                .AddCommand(BusyWaitScenario.Command())
                 .UseDefaults()
                 .Build()
                 .InvokeAsync(args);

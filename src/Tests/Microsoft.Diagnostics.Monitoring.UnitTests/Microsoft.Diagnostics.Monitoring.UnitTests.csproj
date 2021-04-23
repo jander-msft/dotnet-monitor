@@ -16,6 +16,7 @@
     <Compile Include="..\..\Microsoft.Diagnostics.Monitoring.RestServer\Models\DumpType.cs" Link="Models\DumpType.cs" />
     <Compile Include="..\..\Microsoft.Diagnostics.Monitoring.RestServer\Models\ProcessIdentifier.cs" Link="Models\ProcessIdentifier.cs" />
     <Compile Include="..\..\Microsoft.Diagnostics.Monitoring.RestServer\Models\ProcessInfo.cs" Link="Models\ProcessInfo.cs" />
+    <Compile Include="..\..\Microsoft.Diagnostics.Monitoring.RestServer\Models\TraceProfile.cs" Link="Models\TraceProfile.cs" />
     <Compile Include="..\..\Microsoft.Diagnostics.Monitoring.RestServer\StorageOptions.cs" Link="Options\StorageOptions.cs" />
     <Compile Include="..\..\Tools\dotnet-monitor\Auth\ApiAuthenticationOptions.cs" Link="Options\ApiAuthenticationOptions.cs" />
     <Compile Include="..\..\Tools\dotnet-monitor\DiagnosticPortOptions.cs" Link="Options\DiagnosticPortOptions.cs" />

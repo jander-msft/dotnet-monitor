@@ -4,7 +4,11 @@
 
 using System;
 
+#if UNITTEST
+namespace Microsoft.Diagnostics.Monitoring.UnitTests.Models
+#else
 namespace Microsoft.Diagnostics.Monitoring.RestServer.Models
+#endif
 {
     [Flags]
     public enum TraceProfile

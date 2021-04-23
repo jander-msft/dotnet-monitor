@@ -62,7 +62,7 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTests.HttpApi
         }
 
         /// <summary>
-        /// Get /processes/{pid}
+        /// GET /processes/{pid}
         /// </summary>
         public Task<Models.ProcessInfo> GetProcessAsync(int pid, CancellationToken token)
         {
@@ -70,7 +70,7 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTests.HttpApi
         }
 
         /// <summary>
-        /// Get /processes/{uid}
+        /// GET /processes/{uid}
         /// </summary>
         public Task<Models.ProcessInfo> GetProcessAsync(Guid uid, CancellationToken token)
         {
@@ -105,7 +105,7 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTests.HttpApi
         }
 
         /// <summary>
-        /// Get /processes/{pid}/env
+        /// GET /processes/{pid}/env
         /// </summary>
         public Task<Dictionary<string, string>> GetProcessEnvironmentAsync(int pid, CancellationToken token)
         {
@@ -113,7 +113,7 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTests.HttpApi
         }
 
         /// <summary>
-        /// Get /processes/{uid}/env
+        /// GET /processes/{uid}/env
         /// </summary>
         public Task<Dictionary<string, string>> GetProcessEnvironmentAsync(Guid uid, CancellationToken token)
         {
@@ -148,7 +148,7 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTests.HttpApi
         }
 
         /// <summary>
-        /// Get /dump/{pid}?type={dumpType}
+        /// GET /dump/{pid}?type={dumpType}
         /// </summary>
         public Task<ResponseStreamHolder> CaptureDumpAsync(int pid, DumpType dumpType, CancellationToken token)
         {
@@ -156,7 +156,7 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTests.HttpApi
         }
 
         /// <summary>
-        /// Get /dump/{uid}?type={dumpType}
+        /// GET /dump/{uid}?type={dumpType}
         /// </summary>
         public Task<ResponseStreamHolder> CaptureDumpAsync(Guid uid, DumpType dumpType, CancellationToken token)
         {
@@ -166,6 +166,51 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTests.HttpApi
         private async Task<ResponseStreamHolder> CaptureDumpAsync(string processKey, DumpType dumpType, CancellationToken token)
         {
             using HttpRequestMessage request = new(HttpMethod.Get, $"/dump/{processKey}?type={dumpType.ToString("G")}");
+            request.Headers.Add(HeaderNames.Accept, ContentTypes.ApplicationOctetStream);
+
+            using DisposableBox<HttpResponseMessage> responseBox = new(
+                await SendAndLogAsync(
+                    request,
+                    HttpCompletionOption.ResponseHeadersRead,
+                    token).ConfigureAwait(false));
+
+            switch (responseBox.Value.StatusCode)
+            {
+                case HttpStatusCode.OK:
+                    ValidateContentType(responseBox.Value, ContentTypes.ApplicationOctetStream);
+                    return await ResponseStreamHolder.CreateAsync(responseBox).ConfigureAwait(false);
+                case HttpStatusCode.BadRequest:
+                    ValidateContentType(responseBox.Value, ContentTypes.ApplicationProblemJson);
+                    throw await CreateValidationProblemDetailsExceptionAsync(responseBox.Value).ConfigureAwait(false);
+                case HttpStatusCode.Unauthorized:
+                case HttpStatusCode.NotFound:
+                case HttpStatusCode.TooManyRequests:
+                    ThrowIfNotSuccess(responseBox.Value);
+                    break;
+            }
+
+            throw await CreateUnexpectedStatusCodeExceptionAsync(responseBox.Value).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// GET /trace/{pid}?profile={profile}&durationSeconds={durationSeconds}&metricIntervalSeconds={metricsIntervalSeconds}
+        /// </summary>
+        public Task<ResponseStreamHolder> CaptureTraceAsync(int pid, TraceProfile profile, int durationSeconds, int metricsIntervalSeconds, CancellationToken token)
+        {
+            return CaptureTraceAsync(pid.ToString(CultureInfo.InvariantCulture), profile, durationSeconds, metricsIntervalSeconds, token);
+        }
+
+        /// <summary>
+        /// GET /trace/{uid}?profile={profile}&durationSeconds={durationSeconds}&metricIntervalSeconds={metricsIntervalSeconds}
+        /// </summary>
+        public Task<ResponseStreamHolder> CaptureTraceAsync(Guid uid, TraceProfile profile, int durationSeconds, int metricsIntervalSeconds, CancellationToken token)
+        {
+            return CaptureTraceAsync(uid.ToString("D"), profile, durationSeconds, metricsIntervalSeconds, token);
+        }
+
+        private async Task<ResponseStreamHolder> CaptureTraceAsync(string processKey, TraceProfile profile, int durationSeconds, int metricsIntervalSeconds, CancellationToken token)
+        {
+            using HttpRequestMessage request = new(HttpMethod.Get, $"/trace/{processKey}?profile={profile.ToString("G")}");
             request.Headers.Add(HeaderNames.Accept, ContentTypes.ApplicationOctetStream);
 
             using DisposableBox<HttpResponseMessage> responseBox = new(
