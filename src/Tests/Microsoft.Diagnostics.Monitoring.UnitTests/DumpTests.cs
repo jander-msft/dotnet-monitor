@@ -46,75 +46,54 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTests
 #endif
         public async Task DumpTest(DiagnosticPortConnectionMode mode, DumpType type)
         {
-            DiagnosticPortHelper.Generate(
+            await TestExecutor.SingleAppAsync(
+                _outputHelper,
+                _httpClientFactory,
                 mode,
-                out DiagnosticPortConnectionMode appConnectionMode,
-                out string diagnosticPortPath);
-
-            await using MonitorRunner toolRunner = new(_outputHelper);
-            toolRunner.ConnectionMode = mode;
-            toolRunner.DiagnosticPortPath = diagnosticPortPath;
-            toolRunner.DisableAuthentication = true;
-            await toolRunner.StartAsync();
-
-            using HttpClient httpClient = await toolRunner.CreateHttpClientDefaultAddressAsync(_httpClientFactory);
-            ApiClient apiClient = new(_outputHelper, httpClient);
-            
-            AppRunner appRunner = new(_outputHelper);
-            appRunner.ConnectionMode = appConnectionMode;
-            appRunner.DiagnosticPortPath = diagnosticPortPath;
-            appRunner.ScenarioName = TestAppScenarios.AsyncWait.Name;
-
-            // MachO not supported, only ELF: https://github.com/dotnet/runtime/blob/main/docs/design/coreclr/botr/xplat-minidump-generation.md#os-x
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            {
-                appRunner.Environment.Add("COMPlus_DbgEnableElfDumpOnMacOS", "1");
-            }
-
-            await appRunner.ExecuteAsync(async () =>
-            {
-                ProcessInfo processInfo = await apiClient.GetProcessAsync(appRunner.ProcessId);
-                Assert.NotNull(processInfo);
-
-                using ResponseStreamHolder holder = await apiClient.CaptureDumpAsync(appRunner.ProcessId, type);
-                Assert.NotNull(holder);
-
-                byte[] headerBuffer = new byte[64];
-
-                // Read enough to deserialize the header.
-                int read;
-                int total = 0;
-                using CancellationTokenSource cancellation = new(TestTimeouts.HttpApi);
-                while (total < headerBuffer.Length && 0 != (read = await holder.Stream.ReadAsync(headerBuffer, total, headerBuffer.Length - total, cancellation.Token)))
+                TestAppScenarios.AsyncWait.Name,
+                async (client, runner) =>
                 {
-                    total += read;
-                }
-                Assert.Equal(headerBuffer.Length, total);
+                    ProcessInfo processInfo = await client.GetProcessAsync(runner.ProcessId);
+                    Assert.NotNull(processInfo);
 
-                // Read header and validate
-                using MemoryStream headerStream = new(headerBuffer);
+                    using ResponseStreamHolder holder = await client.CaptureDumpAsync(runner.ProcessId, type);
+                    Assert.NotNull(holder);
 
-                StreamAddressSpace dumpAddressSpace = new(headerStream);
-                Reader dumpReader = new(dumpAddressSpace);
+                    byte[] headerBuffer = new byte[64];
 
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    MinidumpHeader header = dumpReader.Read<MinidumpHeader>(0);
-                    // Validate Signature
-                    Assert.True(header.IsSignatureValid.Check());
-                }
-                else
-                {
-                    ELFHeader header = dumpReader.Read<ELFHeader>(0);
-                    // Validate Signature
-                    Assert.True(header.IsIdentMagicValid.Check());
-                    // Validate ELF file is a core dump
-                    Assert.Equal(ELFHeaderType.Core, header.Type);
-                }
+                    // Read enough to deserialize the header.
+                    int read;
+                    int total = 0;
+                    using CancellationTokenSource cancellation = new(TestTimeouts.HttpApi);
+                    while (total < headerBuffer.Length && 0 != (read = await holder.Stream.ReadAsync(headerBuffer, total, headerBuffer.Length - total, cancellation.Token)))
+                    {
+                        total += read;
+                    }
+                    Assert.Equal(headerBuffer.Length, total);
 
-                await appRunner.SendCommandAsync(TestAppScenarios.AsyncWait.Commands.Continue);
-            });
-            Assert.Equal(0, appRunner.ExitCode);
+                    // Read header and validate
+                    using MemoryStream headerStream = new(headerBuffer);
+
+                    StreamAddressSpace dumpAddressSpace = new(headerStream);
+                    Reader dumpReader = new(dumpAddressSpace);
+
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    {
+                        MinidumpHeader header = dumpReader.Read<MinidumpHeader>(0);
+                        // Validate Signature
+                        Assert.True(header.IsSignatureValid.Check());
+                    }
+                    else
+                    {
+                        ELFHeader header = dumpReader.Read<ELFHeader>(0);
+                        // Validate Signature
+                        Assert.True(header.IsIdentMagicValid.Check());
+                        // Validate ELF file is a core dump
+                        Assert.Equal(ELFHeaderType.Core, header.Type);
+                    }
+
+                    await runner.SendCommandAsync(TestAppScenarios.AsyncWait.Commands.Continue);
+                });
         }
 
         private class MinidumpHeader : TStruct

@@ -36,37 +36,27 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTests
 #endif
         public async Task TraceCpuTest(DiagnosticPortConnectionMode mode, TraceProfile profile)
         {
-            DiagnosticPortHelper.Generate(
+            await TestExecutor.SingleAppAsync(
+                _outputHelper,
+                _httpClientFactory,
                 mode,
-                out DiagnosticPortConnectionMode appConnectionMode,
-                out string diagnosticPortPath);
+                TestAppScenarios.BusyWait.Name,
+                async (client, runner) =>
+                {
+                    ProcessInfo processInfo = await client.GetProcessAsync(runner.ProcessId);
+                    Assert.NotNull(processInfo);
 
-            await using MonitorRunner toolRunner = new(_outputHelper);
-            toolRunner.ConnectionMode = mode;
-            toolRunner.DiagnosticPortPath = diagnosticPortPath;
-            toolRunner.DisableAuthentication = true;
-            await toolRunner.StartAsync();
+                    using ResponseStreamHolder holder = await client.CaptureTraceAsync(
+                        runner.ProcessId, 
+                        profile,
+                        durationSeconds: 10,
+                        metricsIntervalSeconds: 1);
+                    Assert.NotNull(holder);
 
-            using HttpClient httpClient = await toolRunner.CreateHttpClientDefaultAddressAsync(_httpClientFactory);
-            ApiClient apiClient = new(_outputHelper, httpClient);
+                    await holder.Stream.CopyToAsync(Stream.Null);
 
-            AppRunner appRunner = new(_outputHelper);
-            appRunner.ConnectionMode = appConnectionMode;
-            appRunner.DiagnosticPortPath = diagnosticPortPath;
-            appRunner.ScenarioName = TestAppScenarios.BusyWait.Name;
-
-            await appRunner.ExecuteAsync(async () =>
-            {
-                ProcessInfo processInfo = await apiClient.GetProcessAsync(appRunner.ProcessId);
-                Assert.NotNull(processInfo);
-
-                using ResponseStreamHolder holder = await apiClient.CaptureTraceAsync(appRunner.ProcessId, profile, durationSeconds: 10, metricsIntervalSeconds: 1);
-                Assert.NotNull(holder);
-
-                await holder.Stream.CopyToAsync(Stream.Null);
-
-                await appRunner.SendCommandAsync(TestAppScenarios.BusyWait.Commands.Continue);
-            });
+                    await runner.SendCommandAsync(TestAppScenarios.BusyWait.Commands.Continue);
+                });
         }
     }
 }
