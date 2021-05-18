@@ -11,6 +11,7 @@ using Microsoft.Diagnostics.Monitoring.UnitTests.Runners;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.FileFormats;
 using Microsoft.FileFormats.ELF;
+using Microsoft.FileFormats.MachO;
 using System;
 using System.IO;
 using System.Net.Http;
@@ -25,6 +26,8 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTests
     [Collection(DefaultCollectionFixture.Name)]
     public class DumpTests
     {
+        private const string EnableElfDumpOnMacOS = "COMPlus_DbgEnableElfDumpOnMacOS";
+
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ITestOutputHelper _outputHelper;
 
@@ -66,10 +69,13 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTests
             appRunner.DiagnosticPortPath = diagnosticPortPath;
             appRunner.ScenarioName = TestAppScenarios.AsyncWait.Name;
 
-            // MachO not supported, only ELF: https://github.com/dotnet/runtime/blob/main/docs/design/coreclr/botr/xplat-minidump-generation.md#os-x
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            if (DotNetHost.RuntimeVersion.Major == 5)
             {
-                appRunner.Environment.Add("COMPlus_DbgEnableElfDumpOnMacOS", "1");
+                // MachO not supported on .NET 5, only ELF: https://github.com/dotnet/runtime/blob/main/docs/design/coreclr/botr/xplat-minidump-generation.md#os-x
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                {
+                    appRunner.Environment.Add(EnableElfDumpOnMacOS, "1");
+                }
             }
 
             await appRunner.ExecuteAsync(async () =>
@@ -125,11 +131,23 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTests
                 }
                 else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
                 {
-                    ELFHeader header = dumpReader.Read<ELFHeader>(0);
-                    // Validate Signature
-                    Assert.True(header.IsIdentMagicValid.Check());
-                    // Validate ELF file is a core dump
-                    Assert.Equal(ELFHeaderType.Core, header.Type);
+                    if (appRunner.Environment.ContainsKey(EnableElfDumpOnMacOS))
+                    {
+                        ELFHeader header = dumpReader.Read<ELFHeader>(0);
+                        // Validate Signature
+                        Assert.True(header.IsIdentMagicValid.Check());
+                        // Validate ELF file is a core dump
+                        Assert.Equal(ELFHeaderType.Core, header.Type);
+                    }
+                    else
+                    {
+                        MachHeader header = dumpReader.Read<MachHeader>(0);
+                        // Validate Signature
+                        Assert.True(header.IsMagicValid.Check());
+                        // Validate file type
+                        Assert.True(header.IsFileTypeValid.Check());
+                        Assert.Equal(MachHeaderFileType.Core, header.FileType);
+                    }
                 }
                 else
                 {
