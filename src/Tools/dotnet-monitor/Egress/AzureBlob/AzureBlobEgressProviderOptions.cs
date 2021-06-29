@@ -6,7 +6,11 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
+#if UNITTEST
+namespace Microsoft.Diagnostics.Monitoring.UnitTests.Options
+#else
 namespace Microsoft.Diagnostics.Tools.Monitor.Egress.AzureBlob
+#endif
 {
     /// <summary>
     /// Egress provider options for Azure blob storage.
@@ -66,12 +70,12 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Egress.AzureBlob
             // One of the authentication keys/tokens is required
             if (string.IsNullOrEmpty(AccountKey) && string.IsNullOrEmpty(SharedAccessSignature))
             {
-                results.Add(
-                    new ValidationResult(
-                        string.Format(
-                            Strings.ErrorMessage_TwoFieldsMissing,
-                            nameof(AccountKey),
-                            nameof(SharedAccessSignature))));
+                //results.Add(
+                //    new ValidationResult(
+                //        string.Format(
+                //            Strings.ErrorMessage_TwoFieldsMissing,
+                //            nameof(AccountKey),
+                //            nameof(SharedAccessSignature))));
             }
 
             return results;

@@ -168,15 +168,24 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "Providers": {
+        "AzureBlobStorage": {
           "type": [
             "null",
             "object"
           ],
-          "description": "Named providers for egress. The names can be referenced when requesting artifacts, such as dumps or traces.",
           "default": {},
           "additionalProperties": {
-            "$ref": "#/definitions/EgressProvider"
+            "$ref": "#/definitions/AzureBlobEgressProviderOptions"
+          }
+        },
+        "FileSystem": {
+          "type": [
+            "null",
+            "object"
+          ],
+          "default": {},
+          "additionalProperties": {
+            "$ref": "#/definitions/FileSystemEgressProviderOptions"
           }
         },
         "Properties": {
@@ -184,7 +193,6 @@
             "null",
             "object"
           ],
-          "description": "Additional properties, such as secrets, that can be referenced by the provider definitions.",
           "default": {},
           "additionalProperties": {
             "type": "string"
@@ -192,23 +200,101 @@
         }
       }
     },
-    "EgressProvider": {
+    "AzureBlobEgressProviderOptions": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/EgressProviderOptions"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "AccountUri",
+            "ContainerName"
+          ],
+          "properties": {
+            "AccountUri": {
+              "type": "string",
+              "format": "uri",
+              "minLength": 1
+            },
+            "AccountKey": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "AccountKeyName": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "SharedAccessSignature": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "SharedAccessSignatureName": {
+              "type": [
+                "null",
+                "string"
+              ]
+            },
+            "ContainerName": {
+              "type": "string",
+              "minLength": 1
+            },
+            "BlobPrefix": {
+              "type": [
+                "null",
+                "string"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "EgressProviderOptions": {
       "type": "object",
-      "additionalProperties": {
-        "type": [
-          "null",
-          "string"
-        ]
-      },
-      "required": [
-        "type"
-      ],
+      "x-abstract": true,
+      "additionalProperties": false,
       "properties": {
-        "type": {
-          "type": "string",
-          "description": "The type of provider. Currently this supports 'fileSystem' and 'azureBlobStorage'."
+        "CopyBufferSize": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int32"
         }
       }
+    },
+    "FileSystemEgressProviderOptions": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/EgressProviderOptions"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "DirectoryPath"
+          ],
+          "properties": {
+            "DirectoryPath": {
+              "type": "string",
+              "minLength": 1
+            },
+            "IntermediateDirectoryPath": {
+              "type": [
+                "null",
+                "string"
+              ]
+            }
+          }
+        }
+      ]
     },
     "MetricsOptions": {
       "type": "object",
