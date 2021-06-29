@@ -4,10 +4,14 @@
 
 using Microsoft.Diagnostics.Monitoring.WebApi;
 using Microsoft.Diagnostics.Tools.Monitor.Egress;
+using Microsoft.Diagnostics.Tools.Monitor.Egress.AzureBlob;
 using Microsoft.Diagnostics.Tools.Monitor.Egress.Configuration;
+using Microsoft.Diagnostics.Tools.Monitor.Egress.FileSystem;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using System;
 
 namespace Microsoft.Diagnostics.Tools.Monitor
 {
@@ -44,20 +48,47 @@ namespace Microsoft.Diagnostics.Tools.Monitor
 
         public static IServiceCollection ConfigureEgress(this IServiceCollection services, IConfiguration configuration)
         {
-            // Register change token for EgressOptions binding
-            services.AddSingleton<IOptionsChangeTokenSource<EgressOptions>>(new ConfigurationChangeTokenSource<EgressOptions>(configuration.GetEgressSection()));
-
-            // Configure EgressOptions to bind to the Egress configuration key.
-            // The options are manually created due to how the Providers property
-            // holds concrete implementations that are based on the 'type' property
-            // for each provider entry.
-            services.AddSingleton<IConfigureOptions<EgressOptions>, EgressConfigureOptions>();
-
             // Register IEgressService implementation that provides egressing
             // of artifacts for the REST server.
             services.AddSingleton<IEgressService, EgressService>();
 
+            // Register regress providers
+            services.RegisterProvider<AzureBlobEgressProviderOptions, AzureBlobEgressProvider>(EgressProviderTypes.AzureBlobStorage);
+            services.RegisterProvider<FileSystemEgressProviderOptions, FileSystemEgressProvider>(EgressProviderTypes.FileSystem);
+
             return services;
+        }
+
+        private static IServiceCollection RegisterProvider<TOptions, TProvider>(this IServiceCollection services, string name)
+            where TProvider : class, IEgressProvider<TOptions>
+            where TOptions : class
+        {
+            // Add services to provide raw configuration for the options type
+            services.AddSingleton(sp => new EgressProviderConfiguration<TOptions>(sp.GetRequiredService<IConfiguration>(), name));
+            services.TryAddSingletonEnumerableForwarder<IEgressProviderConfiguration, EgressProviderConfiguration<TOptions>>();
+            services.TryAddSingletonEnumerableForwarder<IEgressProviderConfiguration<TOptions>, EgressProviderConfiguration<TOptions>>();
+
+            // Add options services for configuring the options type
+            services.AddSingleton<IConfigureOptions<TOptions>, EgressConfigureNamedOptions<TOptions>>();
+
+            // Add egress provider and internal provider wrapper
+            services.AddSingleton<IEgressProvider<TOptions>, TProvider>();
+            services.AddSingleton<IEgressProviderInternal<TOptions>, EgressProviderInternal<TOptions>>();
+
+            // Add mapping between provider name and options type
+            services.TryAddSingletonEnumerable<IEgressProviderDescriptor, EgressProviderDescriptor<TOptions>>(_ => new EgressProviderDescriptor<TOptions>(name));
+
+            return services;
+        }
+
+        private static void TryAddSingletonEnumerableForwarder<TService, TImplementation>(this IServiceCollection services) where TImplementation : class, TService where TService : class
+        {
+            services.TryAddSingletonEnumerable<TService, TImplementation>(sp => sp.GetRequiredService<TImplementation>());
+        }
+
+        private static void TryAddSingletonEnumerable<TService, TImplementation>(this IServiceCollection services, Func<IServiceProvider, TImplementation> func) where TImplementation : class, TService where TService : class
+        {
+            services.TryAddEnumerable(ServiceDescriptor.Singleton<TService, TImplementation>(func));
         }
     }
 }

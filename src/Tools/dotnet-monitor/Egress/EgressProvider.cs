@@ -34,18 +34,16 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Egress
     /// <remarks>
     /// The <typeparamref name="TProviderOptions"/> type is typically used for providing information
     /// about to where a stream is egressed (e.g. directory path, blob storage account, etc).
-    /// The <typeparamref name="TStreamOptions"/> type is typically used for providing information
-    /// about the storage of the stream itself (e.g. file system permissions, file metadata, etc).
     /// Egress providers should throw <see cref="EgressException"/> when operational error occurs
     /// (e.g. unable to write out stream data). Nearly all other exceptions are treats as programming
     /// errors with the exception of <see cref="OperationCanceledException"/> and <see cref="ValidationException"/>.</remarks>
-    internal abstract class EgressProvider<TProviderOptions, TStreamOptions>
+    internal abstract class EgressProvider<TProviderOptions> :
+        IEgressProvider<TProviderOptions>
         where TProviderOptions : EgressProviderOptions
     {
-        protected EgressProvider(TProviderOptions options, ILogger logger = null)
+        protected EgressProvider(ILogger logger = null)
         {
             Logger = logger;
-            Options = options;
         }
 
         /// <summary>
@@ -59,16 +57,16 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Egress
         /// this is a path to access the stream without any information indicating whether any particular
         /// user has access to it (e.g. no file system permissions or SAS tokens).</returns>
         public virtual Task<string> EgressAsync(
+            TProviderOptions options,
             Func<CancellationToken, Task<Stream>> action,
-            string name,
-            TStreamOptions streamOptions,
+            EgressArtifactSettings artifactSettings,
             CancellationToken token)
         {
             Func<Stream, CancellationToken, Task> wrappingAction = async (targetStream, token) =>
             {
                 using var sourceStream = await action(token);
 
-                int copyBufferSize = Options.CopyBufferSize.GetValueOrDefault(0x100000);
+                int copyBufferSize = options.CopyBufferSize.GetValueOrDefault(0x100000);
 
                 Logger?.EgressCopyActionStreamToEgressStream(copyBufferSize);
 
@@ -79,9 +77,9 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Egress
             };
 
             return EgressAsync(
+                options,
                 wrappingAction,
-                name,
-                streamOptions,
+                artifactSettings,
                 token);
         }
 
@@ -96,19 +94,11 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Egress
         /// this is a path to access the stream without any information indicating whether any particular
         /// user has access to it (e.g. no file system permissions or SAS tokens).</returns>
         public abstract Task<string> EgressAsync(
+            TProviderOptions options,
             Func<Stream, CancellationToken, Task> action,
-            string name,
-            TStreamOptions streamOptions,
+            EgressArtifactSettings artifactSettings,
             CancellationToken token);
 
-        protected void ValidateOptions()
-        {
-            ValidationContext context = new ValidationContext(Options);
-            Validator.ValidateObject(Options, context, validateAllProperties: true);
-        }
-
         protected ILogger Logger { get; }
-
-        protected TProviderOptions Options { get; }
     }
 }

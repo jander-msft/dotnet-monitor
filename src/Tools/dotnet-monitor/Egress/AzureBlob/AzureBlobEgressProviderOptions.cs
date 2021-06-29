@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
-namespace Microsoft.Diagnostics.Tools.Monitor.Egress.AzureStorage
+namespace Microsoft.Diagnostics.Tools.Monitor.Egress.AzureBlob
 {
     /// <summary>
     /// Egress provider options for Azure blob storage.
@@ -30,12 +30,22 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Egress.AzureStorage
         public string AccountKey { get; set; }
 
         /// <summary>
+        /// The name of the account key used to look up the value from the <see cref="EgressOptions.Properties"/> map.
+        /// </summary>
+        public string AccountKeyName { get; set; }
+
+        /// <summary>
         /// The shared access signature (SAS) used to access the azure blob storage account.
         /// </summary>
         /// <remarks>
         /// If not provided, <see cref="AzureBlobEgressProviderOptions.AccountKey"/> must be specified.
         /// </remarks>
         public string SharedAccessSignature { get; set; }
+
+        /// <summary>
+        /// The name of the shared access signature (SAS) used to look up the value from the <see cref="EgressOptions.Properties"/> map.
+        /// </summary>
+        public string SharedAccessSignatureName { get; set; }
 
         /// <summary>
         /// The name of the container to which the blob will be egressed. If egressing to the root container,
@@ -65,6 +75,6 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Egress.AzureStorage
             }
 
             return results;
-        }        
+        }
     }
 }
