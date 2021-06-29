@@ -13,10 +13,6 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Egress
     /// </summary>
     internal abstract class EgressProviderOptions
     {
-        /// <summary>
-        /// Buffer size used when copying data from an egress callback returning a stream
-        /// to the egress callback that is provided a stream to which data is written.
-        /// </summary>
-        public int? CopyBufferSize { get; set; }
+        
     }
 }

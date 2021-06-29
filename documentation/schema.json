@@ -201,65 +201,67 @@
       }
     },
     "AzureBlobEgressProviderOptions": {
-      "allOf": [
-        {
-          "$ref": "#/definitions/EgressProviderOptions"
-        },
-        {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "AccountUri",
-            "ContainerName"
-          ],
-          "properties": {
-            "AccountUri": {
-              "type": "string",
-              "format": "uri",
-              "minLength": 1
-            },
-            "AccountKey": {
-              "type": [
-                "null",
-                "string"
-              ]
-            },
-            "AccountKeyName": {
-              "type": [
-                "null",
-                "string"
-              ]
-            },
-            "SharedAccessSignature": {
-              "type": [
-                "null",
-                "string"
-              ]
-            },
-            "SharedAccessSignatureName": {
-              "type": [
-                "null",
-                "string"
-              ]
-            },
-            "ContainerName": {
-              "type": "string",
-              "minLength": 1
-            },
-            "BlobPrefix": {
-              "type": [
-                "null",
-                "string"
-              ]
-            }
-          }
-        }
-      ]
-    },
-    "EgressProviderOptions": {
       "type": "object",
-      "x-abstract": true,
       "additionalProperties": false,
+      "required": [
+        "AccountUri",
+        "ContainerName"
+      ],
+      "properties": {
+        "AccountUri": {
+          "type": "string",
+          "format": "uri",
+          "minLength": 1
+        },
+        "AccountKey": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "AccountKeyName": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "CopyBufferSize": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "int32"
+        },
+        "SharedAccessSignature": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "SharedAccessSignatureName": {
+          "type": [
+            "null",
+            "string"
+          ]
+        },
+        "ContainerName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "BlobPrefix": {
+          "type": [
+            "null",
+            "string"
+          ]
+        }
+      }
+    },
+    "FileSystemEgressProviderOptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "DirectoryPath"
+      ],
       "properties": {
         "CopyBufferSize": {
           "type": [
@@ -267,34 +269,18 @@
             "null"
           ],
           "format": "int32"
+        },
+        "DirectoryPath": {
+          "type": "string",
+          "minLength": 1
+        },
+        "IntermediateDirectoryPath": {
+          "type": [
+            "null",
+            "string"
+          ]
         }
       }
-    },
-    "FileSystemEgressProviderOptions": {
-      "allOf": [
-        {
-          "$ref": "#/definitions/EgressProviderOptions"
-        },
-        {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "DirectoryPath"
-          ],
-          "properties": {
-            "DirectoryPath": {
-              "type": "string",
-              "minLength": 1
-            },
-            "IntermediateDirectoryPath": {
-              "type": [
-                "null",
-                "string"
-              ]
-            }
-          }
-        }
-      ]
     },
     "MetricsOptions": {
       "type": "object",

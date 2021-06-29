@@ -13,8 +13,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Egress.FileSystem
     /// <summary>
     /// Egress provider options for file system egress.
     /// </summary>
-    internal class FileSystemEgressProviderOptions :
-        EgressProviderOptions
+    internal class FileSystemEgressProviderOptions
     {
         /// <summary>
         /// The directory path to which the stream data will be egressed.
@@ -27,5 +26,11 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Egress.FileSystem
         /// be moved/renamed to the directory specified in <see cref="FileSystemEgressProviderOptions.DirectoryPath"/>.
         /// </summary>
         public string IntermediateDirectoryPath { get; set; }
+
+        /// <summary>
+        /// Buffer size used when copying data from an egress callback returning a stream
+        /// to the egress callback that is provided a stream to which data is written.
+        /// </summary>
+        public int? CopyBufferSize { get; set; }
     }
 }

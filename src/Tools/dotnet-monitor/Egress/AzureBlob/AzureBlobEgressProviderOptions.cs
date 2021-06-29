@@ -16,7 +16,6 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Egress.AzureBlob
     /// Egress provider options for Azure blob storage.
     /// </summary>
     internal class AzureBlobEgressProviderOptions :
-        EgressProviderOptions,
         IValidatableObject
     {
         /// <summary>
@@ -62,6 +61,12 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Egress.AzureBlob
         /// The prefix to prepend to the blob name.
         /// </summary>
         public string BlobPrefix { get; set; }
+
+        /// <summary>
+        /// Buffer size used when copying data from an egress callback returning a stream
+        /// to the egress callback that is provided a stream to which data is written.
+        /// </summary>
+        public int? CopyBufferSize { get; set; }
 
         IEnumerable<ValidationResult> IValidatableObject.Validate(ValidationContext validationContext)
         {
