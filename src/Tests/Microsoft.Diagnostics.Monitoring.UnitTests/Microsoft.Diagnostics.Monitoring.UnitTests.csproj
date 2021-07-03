@@ -5,6 +5,14 @@
         <DefineConstants>$(DefineConstants);UNITTEST</DefineConstants>
     </PropertyGroup>
 
+    <ItemGroup Condition="'$(DIAGNOSTICS_REPO_ROOT)' == ''">
+        <PackageReference Include="Microsoft.Diagnostics.NETCore.Client" Version="$(MicrosoftDiagnosticsNETCoreClientVersion)" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(DIAGNOSTICS_REPO_ROOT)' != ''">
+        <ProjectReference Include="$(DIAGNOSTICS_REPO_ROOT)\src\Microsoft.Diagnostics.NETCore.Client\Microsoft.Diagnostics.NETCore.Client.csproj" />
+    </ItemGroup>
+  
     <ItemGroup>
         <ProjectReference Include="..\..\Microsoft.Diagnostics.Monitoring.WebApi\Microsoft.Diagnostics.Monitoring.WebApi.csproj" />
         <ProjectReference Include="..\Microsoft.Diagnostics.Monitoring.TestCommon\Microsoft.Diagnostics.Monitoring.TestCommon.csproj" />
