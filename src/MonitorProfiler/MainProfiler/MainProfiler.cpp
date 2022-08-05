@@ -18,6 +18,8 @@ using namespace std;
 
 #define IfFailLogRet(EXPR) IfFailLogRet_(m_pLogger, EXPR)
 
+#define LogDebugV(format, ...) LogDebugV_(m_pLogger, format, __VA_ARGS__)
+
 GUID MainProfiler::GetClsid()
 {
     // {6A494330-5848-4A23-9D87-0E57BBF6DE79}
@@ -71,6 +73,16 @@ STDMETHODIMP MainProfiler::Shutdown()
     _commandServer->Shutdown();
     _commandServer.reset();
 
+    HRESULT hr = S_OK;
+
+    bool hasException = false;
+    IfFailLogRet(_threadDataManager->AnyExceptions(&hasException));
+
+    if (hasException)
+    {
+        LogDebugV("Unhandled exception detected at shutdown: %d", 0);
+    }
+
     return ProfilerBase::Shutdown();
 }
 
@@ -87,6 +99,7 @@ STDMETHODIMP MainProfiler::ThreadDestroyed(ThreadID threadId)
 {
     HRESULT hr = S_OK;
 
+    IfFailLogRet(_exceptionTracker->ThreadDestroyed(threadId));
     IfFailLogRet(_threadDataManager->ThreadDestroyed(threadId));
 
     return S_OK;

@@ -39,6 +39,7 @@ public:
     HRESULT GetException(ThreadID threadId, bool* hasException, FunctionID* catcherFunctionId);
     HRESULT SetHasException(ThreadID threadId);
     HRESULT SetExceptionCatcherFunction(ThreadID threadId, FunctionID catcherFunctionId);
+    HRESULT AnyExceptions(bool* hasException);
 
 private:
     HRESULT GetThreadData(ThreadID threadId, std::shared_ptr<ThreadData>& threadData);

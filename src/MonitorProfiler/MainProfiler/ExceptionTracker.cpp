@@ -77,6 +77,22 @@ void ExceptionTracker::AddProfilerEventMask(DWORD& eventsLow)
     }
 }
 
+HRESULT ExceptionTracker::ThreadDestroyed(ThreadID threadId)
+{
+    HRESULT hr = S_OK;
+
+    bool hasException = false;
+    FunctionID catcherFunctionId = ThreadData::NoFunctionId;
+    IfFailLogRet(_threadDataManager->GetException(threadId, &hasException, &catcherFunctionId));
+
+    if (hasException && ThreadData::NoFunctionId != catcherFunctionId)
+    {
+        LogDebugV("Unhandled exception on thread: %d", threadId);
+    }
+
+    return S_OK;
+}
+
 HRESULT ExceptionTracker::ExceptionThrown(ThreadID threadId, ObjectID objectId)
 {
     // CAUTION: Do not store the exception ObjectID. It is not guaranteed to be correct
@@ -89,6 +105,8 @@ HRESULT ExceptionTracker::ExceptionThrown(ThreadID threadId, ObjectID objectId)
     // Exception throwing is common; don't pay to calculate method name if it won't be logged.
     if (_logger->IsEnabled(LogLevel::Debug))
     {
+        LogDebugV("Exception thrown on thread: %d", threadId);
+
         hr = _corProfilerInfo->DoStackSnapshot(
             threadId,
             LogExceptionThrownFrameCallback,

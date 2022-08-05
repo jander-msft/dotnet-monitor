@@ -30,6 +30,9 @@ public:
     /// </summary>
     void AddProfilerEventMask(DWORD& eventsLow);
 
+    // Threads
+    HRESULT ThreadDestroyed(ThreadID threadId);
+
     // Exceptions
     HRESULT ExceptionThrown(ThreadID threadId, ObjectID objectId);
     HRESULT ExceptionSearchCatcherFound(ThreadID threadId, FunctionID functionId);

@@ -147,12 +147,12 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon.Runners
             }
 
             StringBuilder argsBuilder = new();
-            if (!string.IsNullOrEmpty(frameworkVersion))
-            {
-                argsBuilder.Append("--fx-version ");
-                argsBuilder.Append(frameworkVersion);
-                argsBuilder.Append(" ");
-            }
+            //if (!string.IsNullOrEmpty(frameworkVersion))
+            //{
+            //    argsBuilder.Append("--fx-version ");
+            //    argsBuilder.Append(frameworkVersion);
+            //    argsBuilder.Append(" ");
+            //}
             argsBuilder.Append("\"");
             argsBuilder.Append(EntrypointAssemblyPath);
             argsBuilder.Append("\" ");

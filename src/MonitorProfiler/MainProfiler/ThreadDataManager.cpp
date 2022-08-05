@@ -11,6 +11,8 @@ using namespace std;
 #define IfFailLogRet(EXPR) IfFailLogRet_(_logger, EXPR)
 #define IfFalseLogRet(EXPR, hr) IfFalseLogRet_(_logger, EXPR, hr)
 
+#define LogDebugV(format, ...) LogDebugV_(_logger, format, __VA_ARGS__)
+
 typedef unordered_map<ThreadID, shared_ptr<ThreadData>>::iterator DataMapIterator;
 
 ThreadDataManager::ThreadDataManager(const shared_ptr<ILogger>& logger)
@@ -28,6 +30,10 @@ HRESULT ThreadDataManager::ThreadCreated(ThreadID threadId)
 {
     lock_guard<mutex> lock(_dataMapMutex);
 
+    HRESULT hr = S_OK;
+
+    LogDebugV("Thread Created: %d", threadId);
+
     _dataMap.insert(make_pair(threadId, make_shared<ThreadData>(_logger)));
 
     return S_OK;
@@ -36,6 +42,10 @@ HRESULT ThreadDataManager::ThreadCreated(ThreadID threadId)
 HRESULT ThreadDataManager::ThreadDestroyed(ThreadID threadId)
 {
     lock_guard<mutex> lock(_dataMapMutex);
+
+    HRESULT hr = S_OK;
+
+    LogDebugV("Thread Destroyed: %d", threadId);
 
     _dataMap.erase(threadId);
 
@@ -91,6 +101,28 @@ HRESULT ThreadDataManager::SetExceptionCatcherFunction(ThreadID threadId, Functi
     IfFailLogRet(threadData->SetExceptionCatcherFunction(catcherFunctionId));
 
     return S_OK;
+}
+
+HRESULT ThreadDataManager::AnyExceptions(bool* hasException)
+{
+    ExpectedPtr(hasException);
+
+    HRESULT hr = S_OK;
+
+    lock_guard<mutex> mapLock(_dataMapMutex);
+
+    FunctionID catcherFunctionId;
+    for (DataMapIterator it = _dataMap.begin(); it != _dataMap.end(); ++it )
+    {
+        IfFailLogRet(it->second->GetException(hasException, &catcherFunctionId));
+
+        if (hasException)
+        {
+            return S_OK;
+        }
+    }
+
+    return S_FALSE;
 }
 
 HRESULT ThreadDataManager::GetThreadData(ThreadID threadId, shared_ptr<ThreadData>& threadData)
