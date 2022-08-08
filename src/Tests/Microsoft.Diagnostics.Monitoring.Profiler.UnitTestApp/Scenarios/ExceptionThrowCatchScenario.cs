@@ -24,6 +24,7 @@ namespace Microsoft.Diagnostics.Monitoring.Profiler.UnitTestApp.Scenarios
             ThrowCatch();
             ThrowCatchDeep();
             ThrowCatchRethrowCatch();
+            ThrowEclipseCatch();
         }
 
         private static void ThrowCatch()
@@ -73,6 +74,24 @@ namespace Microsoft.Diagnostics.Monitoring.Profiler.UnitTestApp.Scenarios
             catch
             {
                 throw;
+            }
+        }
+
+        private static void ThrowEclipseCatch()
+        {
+            try
+            {
+                try
+                {
+                    throw new InvalidOperationException();
+                }
+                finally
+                {
+                    throw new FormatException();
+                }
+            }
+            catch
+            {
             }
         }
 

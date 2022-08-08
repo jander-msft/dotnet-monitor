@@ -102,6 +102,14 @@ HRESULT ExceptionTracker::ExceptionThrown(ThreadID threadId, ObjectID objectId)
             LogErrorV("DoStackSnapshot failed in function %s: 0x%08x", __func__, hr);
             return hr;
         }
+
+        ClassID classId;
+        IfFailLogRet(_corProfilerInfo->GetClassFromObject(objectId, &classId));
+
+        tstring exceptionName;
+        IfFailLogRet(GetFullyQualifiedClassName(classId, exceptionName));
+
+        LogDebugV("Exception type: %s", exceptionName);
     }
 
     return S_OK;
@@ -151,6 +159,19 @@ HRESULT ExceptionTracker::ExceptionUnwindFunctionEnter(ThreadID threadId, Functi
     return S_OK;
 }
 
+HRESULT ExceptionTracker::GetFullyQualifiedClassName(ClassID classId, tstring& fullTypeName)
+{
+    HRESULT hr = S_OK;
+
+    NameCache cache;
+    TypeNameUtilities typeNameUtilities(_corProfilerInfo);
+
+    IfFailRet(typeNameUtilities.CacheNames(cache, classId));
+    IfFailRet(cache.GetFullyQualifiedClassName(classId, fullTypeName));
+
+    return S_OK;
+}
+
 HRESULT ExceptionTracker::GetFullyQualifiedMethodName(FunctionID functionId, tstring& fullMethodName)
 {
     HRESULT hr = S_OK;
@@ -167,7 +188,7 @@ HRESULT ExceptionTracker::GetFullyQualifiedMethodName(FunctionID functionId, COR
     NameCache cache;
     TypeNameUtilities typeNameUtilities(_corProfilerInfo);
 
-    IfFailRet(typeNameUtilities.CacheNames(functionId, frameInfo, cache));
+    IfFailRet(typeNameUtilities.CacheNames(cache, functionId, frameInfo));
     IfFailRet(cache.GetFullyQualifiedName(functionId, fullMethodName));
 
     return S_OK;
