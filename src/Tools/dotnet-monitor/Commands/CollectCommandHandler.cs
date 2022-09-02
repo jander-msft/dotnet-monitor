@@ -154,8 +154,8 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Commands
                 services.ConfigureTemplates(context.Configuration);
 
                 services.AddSingleton<IEndpointInfoSource, FilteredEndpointInfoSource>();
-                services.AddSingleton<ServerEndpointInfoSource>();
-                services.AddHostedServiceForwarder<ServerEndpointInfoSource>();
+                services.AddSingleton<EndpointInfoSource>();
+                services.AddHostedServiceForwarder<EndpointInfoSource>();
                 services.AddSingleton<IDiagnosticServices, DiagnosticServices>();
                 services.AddSingleton<IDumpService, DumpService>();
                 services.AddSingleton<IEndpointInfoSourceCallbacks, OperationTrackerServiceEndpointInfoSourceCallback>();

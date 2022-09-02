@@ -9,9 +9,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -21,7 +19,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor
     /// <summary>
     /// Aggregates diagnostic endpoints that are established at a transport path via a reversed server.
     /// </summary>
-    internal sealed class ServerEndpointInfoSource : BackgroundService, IEndpointInfoSourceInternal
+    internal sealed class EndpointInfoSource : BackgroundService
     {
         // The number of items that the pending removal channel will hold before forcing
         // the writer to wait for capacity to be available.
@@ -35,7 +33,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor
         // The amount of time to wait between pruning operations.
         private static readonly TimeSpan PruningInterval = TimeSpan.FromSeconds(3);
 
-        private readonly List<EndpointInfo> _activeEndpoints = new();
+        private readonly List<IEndpointInfo> _activeEndpoints = new();
         private readonly SemaphoreSlim _activeEndpointsSemaphore = new(1);
 
         private readonly ChannelReader<IEndpointInfo> _pendingRemovalReader;
@@ -46,17 +44,17 @@ namespace Microsoft.Diagnostics.Tools.Monitor
         private readonly DiagnosticPortOptions _portOptions;
 
         private readonly OperationTrackerService _operationTrackerService;
-        private readonly ILogger<ServerEndpointInfoSource> _logger;
+        private readonly ILogger<EndpointInfoSource> _logger;
 
         /// <summary>
-        /// Constructs a <see cref="ServerEndpointInfoSource"/> that aggregates diagnostic endpoints
+        /// Constructs a <see cref="EndpointInfoSource"/> that aggregates diagnostic endpoints
         /// from a reversed diagnostics server at path specified by <paramref name="portOptions"/>.
         /// </summary>
-        public ServerEndpointInfoSource(
+        public EndpointInfoSource(
             IOptions<DiagnosticPortOptions> portOptions,
             IEnumerable<IEndpointInfoSourceCallbacks> callbacks = null,
             OperationTrackerService operationTrackerService = null,
-            ILogger<ServerEndpointInfoSource> logger = null)
+            ILogger<EndpointInfoSource> logger = null)
         {
             _callbacks = callbacks ?? Enumerable.Empty<IEndpointInfoSourceCallbacks>();
             _operationTrackerService = operationTrackerService;
@@ -82,37 +80,18 @@ namespace Microsoft.Diagnostics.Tools.Monitor
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            if (_portOptions.ConnectionMode == DiagnosticPortConnectionMode.Listen)
+            await using IpcEndpointInfoSource source = _portOptions.GetConnectionMode() switch
             {
-                if (_portOptions.GetDeleteEndpointOnStartup() &&
-                   !RuntimeInformation.IsOSPlatform(OSPlatform.Windows) &&
-                    File.Exists(_portOptions.EndpointName))
-                {
-                    // In some circumstances stale files from previous instances of dotnet-monitor cause
-                    // the new instance to fail binding. We need to delete the file in this situation.
-                    try
-                    {
-                        _logger.DiagnosticPortDeleteAttempt(_portOptions.EndpointName);
-                        File.Delete(_portOptions.EndpointName);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.DiagnosticPortDeleteFailed(_portOptions.EndpointName, ex);
-                    }
-                }
+                DiagnosticPortConnectionMode.Connect => await StartClientSourceAsync(),
+                DiagnosticPortConnectionMode.Listen => await StartServerSourceAsync(),
+                _ => throw new NotSupportedException()
+            };
 
-                await using ReversedDiagnosticsServer server = new(_portOptions.EndpointName);
-
-                server.Start(_portOptions.MaxConnections.GetValueOrDefault(ReversedDiagnosticsServer.MaxAllowedConnections));
-
-                using var _ = SetupDiagnosticPortWatcher();
-
-                await Task.WhenAll(
-                    ListenAsync(server, stoppingToken),
-                    MonitorEndpointsAsync(stoppingToken),
-                    NotifyAndRemoveAsync(server, stoppingToken)
-                    );
-            }
+            await Task.WhenAll(
+                ListenAsync(source, stoppingToken),
+                MonitorEndpointsAsync(stoppingToken),
+                NotifyAndRemoveAsync(source, stoppingToken)
+                );
         }
 
         /// <summary>
@@ -129,12 +108,26 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             return validEndpoints;
         }
 
+        private async Task<IpcEndpointInfoSource> StartClientSourceAsync()
+        {
+            IpcClientEndpointInfoSource source = new(_logger);
+            await source.StartAsync();
+            return source;
+        }
+
+        private async Task<IpcEndpointInfoSource> StartServerSourceAsync()
+        {
+            IpcServerEndpointInfoSource source = new(_portOptions.EndpointName, _logger);
+            await source.StartAsync(_portOptions.MaxConnections, _portOptions.DeleteEndpointOnStartup.GetValueOrDefault(DiagnosticPortOptionsDefaults.DeleteEndpointOnStartup));
+            return source;
+        }
+
         /// <summary>
         /// Accepts endpoint infos from the reversed diagnostics server.
         /// </summary>
         /// <param name="maxConnections">The maximum number of connections the server will support.</param>
         /// <param name="token">The token to monitor for cancellation requests.</param>
-        private async Task ListenAsync(ReversedDiagnosticsServer server, CancellationToken token)
+        private async Task ListenAsync(IpcEndpointInfoSource source, CancellationToken token)
         {
             // Continuously accept endpoint infos from the reversed diagnostics server so
             // that <see cref="ReversedDiagnosticsServer.AcceptAsync(CancellationToken)"/>
@@ -144,9 +137,9 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             {
                 try
                 {
-                    IpcEndpointInfo info = await server.AcceptAsync(token).ConfigureAwait(false);
+                    IEndpointInfo info = await source.AcceptAsync(token).ConfigureAwait(false);
 
-                    _ = Task.Run(() => ResumeAndQueueEndpointInfo(server, info, token), token);
+                    _ = Task.Run(() => ResumeAndQueueEndpointInfo(source, info, token), token);
                 }
                 catch (OperationCanceledException)
                 {
@@ -154,12 +147,10 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             }
         }
 
-        private async Task ResumeAndQueueEndpointInfo(ReversedDiagnosticsServer server, IpcEndpointInfo info, CancellationToken token)
+        private async Task ResumeAndQueueEndpointInfo(IpcEndpointInfoSource source, IEndpointInfo endpointInfo, CancellationToken token)
         {
             try
             {
-                EndpointInfo endpointInfo = await EndpointInfo.FromIpcEndpointInfoAsync(info, token);
-
                 foreach (IEndpointInfoSourceCallbacks callback in _callbacks)
                 {
                     await callback.OnBeforeResumeAsync(endpointInfo, token).ConfigureAwait(false);
@@ -169,7 +160,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor
                 // those instances that are configured to pause on start to resume after the diagnostics
                 // connection has been made. Instances that are not configured to pause on startup will ignore
                 // the command and return success.
-                var client = new DiagnosticsClient(info.Endpoint);
+                var client = new DiagnosticsClient(endpointInfo.Endpoint);
                 try
                 {
                     await client.ResumeRuntimeAsync(token);
@@ -196,7 +187,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             }
             catch (Exception)
             {
-                server?.RemoveConnection(info.RuntimeInstanceCookie);
+                source?.Remove(endpointInfo);
 
                 throw;
             }
@@ -212,7 +203,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             }
         }
 
-        private async Task NotifyAndRemoveAsync(ReversedDiagnosticsServer server, CancellationToken token)
+        private async Task NotifyAndRemoveAsync(IpcEndpointInfoSource source, CancellationToken token)
         {
             while (!token.IsCancellationRequested)
             {
@@ -223,7 +214,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor
                     await callback.OnRemovedEndpointInfoAsync(endpoint, token).ConfigureAwait(false);
                 }
 
-                server.RemoveConnection(endpoint.RuntimeInstanceCookie);
+                source.Remove(endpoint);
             }
         }
 
@@ -237,7 +228,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             {
                 // Check the transport for each endpoint info and remove it if the check fails.
                 List<Task<bool>> checkTasks = new();
-                foreach (EndpointInfo info in _activeEndpoints)
+                foreach (IEndpointInfo info in _activeEndpoints)
                 {
                     checkTasks.Add(Task.Run(() => CheckEndpointAsync(info, token), token));
                 }
@@ -273,7 +264,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor
         /// <summary>
         /// Tests the endpoint to see if its connection is viable.
         /// </summary>
-        private async Task<bool> CheckEndpointAsync(EndpointInfo info, CancellationToken token)
+        private async Task<bool> CheckEndpointAsync(IEndpointInfo info, CancellationToken token)
         {
             // If a dump operation is in progress, the runtime is likely to not respond to
             // diagnostic requests. Do not check for responsiveness while the dump operation
@@ -303,48 +294,6 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             }
 
             return true;
-        }
-
-        private IDisposable SetupDiagnosticPortWatcher()
-        {
-            // If running on Windows, a named pipe is used so there is no need to watch it.
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                return null;
-            }
-
-            FileSystemWatcher watcher = null;
-            try
-            {
-                watcher = new(Path.GetDirectoryName(_portOptions.EndpointName));
-                void onDiagnosticPortAltered()
-                {
-                    _logger.DiagnosticPortAlteredWhileInUse(_portOptions.EndpointName);
-                    try
-                    {
-                        watcher.EnableRaisingEvents = false;
-                    }
-                    catch
-                    {
-                    }
-                }
-
-                watcher.Filter = Path.GetFileName(_portOptions.EndpointName);
-                watcher.NotifyFilter = NotifyFilters.FileName;
-                watcher.Deleted += (_, _) => onDiagnosticPortAltered();
-                watcher.Renamed += (_, _) => onDiagnosticPortAltered();
-                watcher.Error += (object _, ErrorEventArgs e) => _logger.DiagnosticPortWatchingFailed(_portOptions.EndpointName, e.GetException());
-                watcher.EnableRaisingEvents = true;
-
-                return watcher;
-            }
-            catch (Exception ex)
-            {
-                _logger.DiagnosticPortWatchingFailed(_portOptions.EndpointName, ex);
-                watcher?.Dispose();
-            }
-
-            return null;
         }
     }
 }

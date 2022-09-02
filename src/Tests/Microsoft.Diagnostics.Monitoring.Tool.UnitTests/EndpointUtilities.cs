@@ -51,7 +51,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
                     EndpointName = transportName
                 });
 
-            ServerEndpointInfoSource source = new(portOptions, callbacks, operationTrackerService);
+            EndpointInfoSource source = new(portOptions, callbacks, operationTrackerService);
 
             await source.StartAsync(CancellationToken.None);
 
@@ -67,7 +67,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
             return appRunner;
         }
 
-        public async Task<IEnumerable<IEndpointInfo>> GetEndpointInfoAsync(ServerEndpointInfoSource source)
+        public async Task<IEnumerable<IEndpointInfo>> GetEndpointInfoAsync(EndpointInfoSource source)
         {
             _outputHelper.WriteLine("Getting endpoint infos.");
             using CancellationTokenSource cancellationSource = new(GetEndpointInfoTimeout);
@@ -89,13 +89,13 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
 
     internal sealed class ServerSourceHolder : IAsyncDisposable
     {
-        public ServerSourceHolder(ServerEndpointInfoSource source, string transportName)
+        public ServerSourceHolder(EndpointInfoSource source, string transportName)
         {
             Source = source;
             TransportName = transportName;
         }
 
-        public ServerEndpointInfoSource Source { get; }
+        public EndpointInfoSource Source { get; }
 
         public string TransportName { get; }
 
