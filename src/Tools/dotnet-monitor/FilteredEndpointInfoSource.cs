@@ -9,7 +9,6 @@ using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -25,28 +24,15 @@ namespace Microsoft.Diagnostics.Tools.Monitor
         private readonly DiagnosticPortOptions _portOptions;
         private readonly int? _processIdToFilterOut;
         private readonly Guid? _runtimeInstanceCookieToFilterOut;
-        private readonly IEndpointInfoSourceInternal _source;
+        private readonly ServerEndpointInfoSource _source;
 
         public FilteredEndpointInfoSource(
-            ServerEndpointInfoSource serverEndpointInfoSource,
+            ServerEndpointInfoSource source,
             IOptions<DiagnosticPortOptions> portOptions,
-            ILogger<ClientEndpointInfoSource> clientSourceLogger)
+            ILogger<FilteredEndpointInfoSource> logger)
         {
             _portOptions = portOptions.Value;
-
-            DiagnosticPortConnectionMode connectionMode = _portOptions.GetConnectionMode();
-
-            switch (connectionMode)
-            {
-                case DiagnosticPortConnectionMode.Connect:
-                    _source = new ClientEndpointInfoSource(clientSourceLogger);
-                    break;
-                case DiagnosticPortConnectionMode.Listen:
-                    _source = serverEndpointInfoSource;
-                    break;
-                default:
-                    throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, Strings.ErrorMessage_UnhandledConnectionMode, connectionMode));
-            }
+            _source = source;
 
             // Filter out the current process based on the connection mode.
             if (RuntimeInfo.IsDiagnosticsEnabled)
@@ -65,12 +51,12 @@ namespace Microsoft.Diagnostics.Tools.Monitor
                 }
                 catch (Exception ex)
                 {
-                    clientSourceLogger.RuntimeInstanceCookieFailedToFilterSelf(ex);
+                    logger.RuntimeInstanceCookieFailedToFilterSelf(ex);
                 }
 
                 // If connecting to runtime instances, filter self out. In listening mode, it's likely
                 // that multiple processes have the same PID in multi-container scenarios.
-                if (DiagnosticPortConnectionMode.Connect == connectionMode)
+                if (DiagnosticPortConnectionMode.Connect == portOptions.Value.GetConnectionMode())
                 {
                     _processIdToFilterOut = pid;
                 }
