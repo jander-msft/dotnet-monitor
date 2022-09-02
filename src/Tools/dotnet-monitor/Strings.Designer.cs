@@ -1150,6 +1150,24 @@ namespace Microsoft.Diagnostics.Tools.Monitor {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Detected creation of diagnostic port at &apos;{path}&apos;..
+        /// </summary>
+        internal static string LogFormatString_ObservedDiagnosticPortCreated {
+            get {
+                return ResourceManager.GetString("LogFormatString_ObservedDiagnosticPortCreated", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Detected removal of diagnostic port at &apos;{path}&apos;..
+        /// </summary>
+        internal static string LogFormatString_ObservedDiagnosticPortDeleted {
+            get {
+                return ResourceManager.GetString("LogFormatString_ObservedDiagnosticPortDeleted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to {failure}.
         /// </summary>
         internal static string LogFormatString_OptionsValidationFailure {

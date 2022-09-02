@@ -17,6 +17,7 @@ using Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Options.Actions;
 using Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Options.Triggers;
 using Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Options.Triggers.EventCounterShortcuts;
 using Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Triggers;
+using Microsoft.Diagnostics.Tools.Monitor.Connections;
 using Microsoft.Diagnostics.Tools.Monitor.Egress;
 using Microsoft.Diagnostics.Tools.Monitor.Egress.AzureBlob;
 using Microsoft.Diagnostics.Tools.Monitor.Egress.Configuration;
@@ -40,6 +41,18 @@ namespace Microsoft.Diagnostics.Tools.Monitor
         public static IServiceCollection ConfigureCollectionRuleDefaults(this IServiceCollection services, IConfiguration configuration)
         {
             return ConfigureOptions<CollectionRuleDefaultsOptions>(services, configuration, ConfigurationKeys.CollectionRuleDefaults);
+        }
+
+        public static IServiceCollection ConfigureConnections(this IServiceCollection services)
+        {
+            return services.AddSingleton<IDiagnosticConnectionListenerFactory, DefaultDiagnosticConnectionListenerFactory>()
+                .AddSingleton<ClientDiagnosticConnectionListenerFactory>()
+                .AddSingleton<ServerDiagnosticConnectionListenerFactory>();
+        }
+
+        public static IServiceCollection ConfigureEndPoints(this IServiceCollection services)
+        {
+            return services.AddSingleton<ClientDiagnosticEndPointMonitor>();
         }
 
         public static IServiceCollection ConfigureTemplates(this IServiceCollection services, IConfiguration configuration)

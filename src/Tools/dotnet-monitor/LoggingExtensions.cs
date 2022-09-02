@@ -441,6 +441,18 @@ namespace Microsoft.Diagnostics.Tools.Monitor
                 logLevel: LogLevel.Warning,
                 formatString: Strings.LogFormatString_ExperimentalFeatureEnabled);
 
+        private static readonly Action<ILogger, string, Exception> _observedDiagnosticPortCreated =
+            LoggerMessage.Define<string>(
+                eventId: LoggingEventIds.ObservedDiagnosticPortCreated.EventId(),
+                logLevel: LogLevel.Debug,
+                formatString: Strings.LogFormatString_ObservedDiagnosticPortCreated);
+
+        private static readonly Action<ILogger, string, Exception> _observedDiagnosticPortDeleted =
+            LoggerMessage.Define<string>(
+                eventId: LoggingEventIds.ObservedDiagnosticPortDeleted.EventId(),
+                logLevel: LogLevel.Debug,
+                formatString: Strings.LogFormatString_ObservedDiagnosticPortDeleted);
+
         public static void EgressProviderInvalidOptions(this ILogger logger, string providerName)
         {
             _egressProviderInvalidOptions(logger, providerName, null);
@@ -808,6 +820,16 @@ namespace Microsoft.Diagnostics.Tools.Monitor
         public static void ExperimentalFeatureEnabled(this ILogger logger, string name)
         {
             _experimentalFeatureEnabled(logger, name, null);
+        }
+
+        public static void ObservedDiagnosticPortCreated(this ILogger logger, string path)
+        {
+            _observedDiagnosticPortCreated(logger, path, null);
+        }
+
+        public static void ObservedDiagnosticPortDeleted(this ILogger logger, string path)
+        {
+            _observedDiagnosticPortDeleted(logger, path, null);
         }
     }
 }

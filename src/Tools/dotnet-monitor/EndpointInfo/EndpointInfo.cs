@@ -4,6 +4,7 @@
 
 using Microsoft.Diagnostics.Monitoring.WebApi;
 using Microsoft.Diagnostics.NETCore.Client;
+using Microsoft.Diagnostics.Tracing.AutomatedAnalysis;
 using System;
 using System.Diagnostics;
 using System.Threading;
@@ -14,9 +15,10 @@ namespace Microsoft.Diagnostics.Tools.Monitor
     [DebuggerDisplay("{DebuggerDisplay,nq}")]
     internal sealed class EndpointInfo : EndpointInfoBase
     {
-        public static async Task<EndpointInfo> FromProcessIdAsync(int processId, CancellationToken token)
+        public static async Task<EndpointInfo> FromDiagnosticEndPoint(DiagnosticEndPoint endPoint, CancellationToken token)
         {
-            var client = new DiagnosticsClient(processId);
+            DiagnosticPortIpcEndpoint endpoint = new($"{endPoint.Path},connect");
+            var client = new DiagnosticsClient(endpoint);
 
             ProcessInfo processInfo = null;
             try
@@ -26,7 +28,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor
                 // remainder of the information since it already has access to it.
                 processInfo = await client.GetProcessInfoAsync(token);
 
-                Debug.Assert(processId == unchecked((int)processInfo.ProcessId));
+                Debug.Assert(endPoint.ProcessId == unchecked((int)processInfo.ProcessId));
             }
             catch (ServerErrorException)
             {
@@ -45,8 +47,8 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             // if an app is running as 3.1
             return new EndpointInfo()
             {
-                Endpoint = new PidIpcEndpoint(processId),
-                ProcessId = processId,
+                Endpoint = endpoint,
+                ProcessId = endPoint.ProcessId,
                 RuntimeInstanceCookie = processInfo?.RuntimeInstanceCookie ?? Guid.Empty,
                 CommandLine = processInfo?.CommandLine,
                 OperatingSystem = processInfo?.OperatingSystem,

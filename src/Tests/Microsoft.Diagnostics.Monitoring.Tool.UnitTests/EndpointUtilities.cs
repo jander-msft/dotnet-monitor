@@ -6,6 +6,7 @@ using Microsoft.Diagnostics.Monitoring.TestCommon;
 using Microsoft.Diagnostics.Monitoring.TestCommon.Runners;
 using Microsoft.Diagnostics.Monitoring.WebApi;
 using Microsoft.Diagnostics.Tools.Monitor;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
@@ -28,7 +29,9 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
             _outputHelper = outputHelper;
         }
 
-        public async Task<ServerSourceHolder> StartServerAsync(EndpointInfoSourceCallback sourceCallback = null, IDumpService dumpService = null,
+        public async Task<ServerSourceHolder> StartServerAsync(
+            EndpointInfoSourceCallback sourceCallback = null,
+            IDumpService dumpService = null,
             OperationTrackerService operationTrackerService = null)
         {
             DiagnosticPortHelper.Generate(DiagnosticPortConnectionMode.Listen, out _, out string transportName);
@@ -44,14 +47,20 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
                 }
             }
 
-            IOptions<DiagnosticPortOptions> portOptions = Extensions.Options.Options.Create(
-                new DiagnosticPortOptions()
-                {
-                    ConnectionMode = DiagnosticPortConnectionMode.Listen,
-                    EndpointName = transportName
-                });
+            IOptions<DiagnosticPortOptions> portOptions = Extensions.Options.Options.Create<DiagnosticPortOptions>(new()
+            {
+                ConnectionMode = DiagnosticPortConnectionMode.Listen,
+                EndpointName = transportName
+            });
 
-            ServerEndpointInfoSource source = new(portOptions, callbacks, operationTrackerService);
+            ILogger<ServerDiagnosticConnectionListener> logger =
+                new TestOutputLogger<ServerDiagnosticConnectionListener>(_outputHelper);
+
+            ServerDiagnosticConnectionListenerFactory listenerFactory = new(
+                portOptions,
+                logger);
+
+            EndpointInfoSource source = new(listenerFactory, callbacks, operationTrackerService);
 
             await source.StartAsync(CancellationToken.None);
 
@@ -67,7 +76,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
             return appRunner;
         }
 
-        public async Task<IEnumerable<IEndpointInfo>> GetEndpointInfoAsync(ServerEndpointInfoSource source)
+        public async Task<IEnumerable<IEndpointInfo>> GetEndpointInfoAsync(EndpointInfoSource source)
         {
             _outputHelper.WriteLine("Getting endpoint infos.");
             using CancellationTokenSource cancellationSource = new(GetEndpointInfoTimeout);
@@ -89,13 +98,13 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
 
     internal sealed class ServerSourceHolder : IAsyncDisposable
     {
-        public ServerSourceHolder(ServerEndpointInfoSource source, string transportName)
+        public ServerSourceHolder(EndpointInfoSource source, string transportName)
         {
             Source = source;
             TransportName = transportName;
         }
 
-        public ServerEndpointInfoSource Source { get; }
+        public EndpointInfoSource Source { get; }
 
         public string TransportName { get; }
 

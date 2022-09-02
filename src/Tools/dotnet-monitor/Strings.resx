@@ -661,6 +661,12 @@
   <data name="LogFormatString_NotifyPrivateKey" xml:space="preserve">
     <value>The configuration field {fieldName} contains private key information. The private key information is not required for dotnet-monitor to verify a token signature and it is strongly recomended to only provide the public key.</value>
   </data>
+  <data name="LogFormatString_ObservedDiagnosticPortCreated" xml:space="preserve">
+    <value>Detected creation of diagnostic port at '{path}'.</value>
+  </data>
+  <data name="LogFormatString_ObservedDiagnosticPortDeleted" xml:space="preserve">
+    <value>Detected removal of diagnostic port at '{path}'.</value>
+  </data>
   <data name="LogFormatString_OptionsValidationFailure" xml:space="preserve">
     <value>{failure}</value>
     <comment>Gets the format string that is printed in the 18:OptionsValidationFailure event.
