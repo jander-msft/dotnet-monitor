@@ -45,6 +45,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor
 
         private readonly OperationTrackerService _operationTrackerService;
         private readonly ILogger<EndpointInfoSource> _logger;
+        private readonly ILoggerFactory _loggerFactory;
 
         /// <summary>
         /// Constructs a <see cref="EndpointInfoSource"/> that aggregates diagnostic endpoints
@@ -54,12 +55,14 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             IOptions<DiagnosticPortOptions> portOptions,
             IEnumerable<IEndpointInfoSourceCallbacks> callbacks = null,
             OperationTrackerService operationTrackerService = null,
-            ILogger<EndpointInfoSource> logger = null)
+            ILogger<EndpointInfoSource> logger = null,
+            ILoggerFactory loggerFactory = null)
         {
             _callbacks = callbacks ?? Enumerable.Empty<IEndpointInfoSourceCallbacks>();
             _operationTrackerService = operationTrackerService;
             _portOptions = portOptions.Value;
             _logger = logger;
+            _loggerFactory = loggerFactory;
 
             BoundedChannelOptions channelOptions = new(PendingRemovalChannelCapacity)
             {
@@ -117,8 +120,10 @@ namespace Microsoft.Diagnostics.Tools.Monitor
 
         private async Task<IpcEndpointInfoSource> StartServerSourceAsync()
         {
-            IpcServerEndpointInfoSource source = new(_portOptions.EndpointName, _logger);
-            await source.StartAsync(_portOptions.MaxConnections, _portOptions.DeleteEndpointOnStartup.GetValueOrDefault(DiagnosticPortOptionsDefaults.DeleteEndpointOnStartup));
+            KestrelServerEndpointInfoSource source = new(_portOptions.EndpointName, _loggerFactory);
+            await source.StartAsync();
+            //IpcServerEndpointInfoSource source = new(_portOptions.EndpointName, _logger);
+            //await source.StartAsync(_portOptions.MaxConnections, _portOptions.DeleteEndpointOnStartup.GetValueOrDefault(DiagnosticPortOptionsDefaults.DeleteEndpointOnStartup));
             return source;
         }
 
