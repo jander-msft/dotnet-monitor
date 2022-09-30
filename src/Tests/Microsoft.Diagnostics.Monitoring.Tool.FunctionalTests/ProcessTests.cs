@@ -7,7 +7,6 @@ using Microsoft.Diagnostics.Monitoring.TestCommon;
 using Microsoft.Diagnostics.Monitoring.TestCommon.Runners;
 using Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests.Fixtures;
 using Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests.HttpApi;
-using Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests.Runners;
 using Microsoft.Diagnostics.Monitoring.WebApi;
 using Microsoft.Diagnostics.Monitoring.WebApi.Models;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,7 +15,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -49,42 +48,42 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
         public Task SingleProcessIdentificationTest(DiagnosticPortConnectionMode mode)
         {
             string expectedEnvVarValue = Guid.NewGuid().ToString("D");
+            int appProcessId = -1;
 
-            return ScenarioRunner.SingleTarget(
-                _outputHelper,
-                _httpClientFactory,
-                mode,
-                TestAppScenarios.AsyncWait.Name,
-                appValidate: async (runner, client) =>
+            return TestHostBuilder.Create(_outputHelper)
+                .UseDiagnosticPort(mode)
+                .AddMonitorTool(_httpClientFactory)
+                .AddTargetApp(TestAppScenarios.AsyncWait.Name, (options, context) =>
                 {
-                    int processId = await runner.ProcessIdTask;
+                    options.Environment.Add(ExpectedEnvVarName, expectedEnvVarValue);
+                })
+                .AddTargetValidation(async (client, target, token) =>
+                {
+                    appProcessId = target.ProcessId;
 
                     // GET /processes and filter to just the single process
                     IEnumerable<ProcessIdentifier> identifiers = await client.GetProcessesWithRetryAsync(
                         _outputHelper,
-                        new[] { processId });
+                        new[] { appProcessId });
                     Assert.NotNull(identifiers);
                     Assert.Single(identifiers);
 
-                    await VerifyProcessAsync(client, identifiers, processId, expectedEnvVarValue);
+                    await VerifyProcessAsync(client, identifiers, appProcessId, expectedEnvVarValue);
 
-                    await runner.SendCommandAsync(TestAppScenarios.AsyncWait.Commands.Continue);
-                },
-                postAppValidate: async (client, processId) =>
+                    await target.SendCommandAsync(TestAppScenarios.AsyncWait.Commands.Continue, token);
+                })
+                .AddToolBeforeShutdownValidation(async (client, token) =>
                 {
-                    // GET /processes and filter to just the single process
+                    // GET / processes and filter to just the single process
                     IEnumerable<ProcessIdentifier> identifiers = await client.GetProcessesWithRetryAsync(
                         _outputHelper,
-                        new[] { processId });
+                        new[] { appProcessId });
 
                     // Verify app is no longer reported
                     Assert.NotNull(identifiers);
                     Assert.Empty(identifiers);
-                },
-                configureApp: runner =>
-                {
-                    runner.Environment[ExpectedEnvVarName] = expectedEnvVarValue;
-                });
+                })
+                .ExecuteAsync(CancellationToken.None);
         }
 
         /// <summary>
@@ -98,139 +97,113 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
 #endif
         public async Task MultiProcessIdentificationTest(DiagnosticPortConnectionMode mode)
         {
-            DiagnosticPortHelper.Generate(
-                mode,
-                out DiagnosticPortConnectionMode appConnectionMode,
-                out string diagnosticPortPath);
+            int appCount = 3;
+            List<string> expectedEnvVars = new(appCount);
+            List<int> appProcessIds = new(appCount);
 
-            await using MonitorCollectRunner toolRunner = new(_outputHelper);
-            toolRunner.ConnectionModeViaCommandLine = mode;
-            toolRunner.DiagnosticPortPath = diagnosticPortPath;
-            toolRunner.DisableAuthentication = true;
-            await toolRunner.StartAsync();
-
-            using HttpClient httpClient = await toolRunner.CreateHttpClientDefaultAddressAsync(_httpClientFactory);
-            ApiClient apiClient = new(_outputHelper, httpClient);
-
-            const int appCount = 3;
-            AppRunner[] appRunners = new AppRunner[appCount];
-
-            for (int i = 0; i < appCount; i++)
-            {
-                AppRunner runner = new(_outputHelper, Assembly.GetExecutingAssembly(), appId: i + 1);
-                runner.ConnectionMode = appConnectionMode;
-                runner.DiagnosticPortPath = diagnosticPortPath;
-                runner.ScenarioName = TestAppScenarios.AsyncWait.Name;
-                runner.Environment[ExpectedEnvVarName] = Guid.NewGuid().ToString("D");
-                appRunners[i] = runner;
-            }
-
-            IList<ProcessIdentifier> identifiers;
-            await appRunners.ExecuteAsync(async () =>
-            {
-                // Scope to only the processes that were launched by the test
-                IList<int> unmatchedPids = new List<int>();
-                foreach (AppRunner runner in appRunners)
+            await TestHostBuilder.Create(_outputHelper)
+                .UseDiagnosticPort(mode)
+                .AddMonitorTool(_httpClientFactory)
+                .AddTargetApp(TestAppScenarios.AsyncWait.Name, (options, context) =>
                 {
-                    unmatchedPids.Add(await runner.ProcessIdTask);
-                }
-
-                // Query for process identifiers
-                identifiers = (await apiClient.GetProcessesWithRetryAsync(
-                    _outputHelper,
-                    unmatchedPids.ToArray())).ToList();
-                Assert.NotNull(identifiers);
-
-                _outputHelper.WriteLine("Start enumerating discovered processes.");
-                foreach (ProcessIdentifier identifier in identifiers.ToList())
+                    string value = Guid.NewGuid().ToString("D");
+                    expectedEnvVars.Add(value);
+                    options.Environment.Add(ExpectedEnvVarName, value);
+                }, count: appCount)
+                .AddTargetValidation((client, target, token) =>
                 {
-                    _outputHelper.WriteLine($"- PID:  {identifier.Pid}");
-                    _outputHelper.WriteLine($"  UID:  {identifier.Uid}");
-                    _outputHelper.WriteLine($"  Name: {identifier.Name}");
-
-                    unmatchedPids.Remove(identifier.Pid);
-                }
-                _outputHelper.WriteLine("End enumerating discovered processes");
-
-                Assert.Empty(unmatchedPids);
-                Assert.Equal(appRunners.Length, identifiers.Count);
-
-                foreach (ProcessIdentifier processIdentifier in identifiers)
+                    appProcessIds.Add(target.ProcessId);
+                    return Task.CompletedTask;
+                })
+                .AddToolValidation(async (client, token) =>
                 {
-                    int pid = processIdentifier.Pid;
-                    Guid uid = processIdentifier.Uid;
-                    string name = processIdentifier.Name;
+                    HashSet<int> unmatchedPids = new(appProcessIds);
+
+                    // Query for process identifiers
+                    IEnumerable<ProcessIdentifier> identifiers = await client.GetProcessesWithRetryAsync(
+                        _outputHelper,
+                        unmatchedPids.ToArray());
+                    Assert.NotNull(identifiers);
+
+                    _outputHelper.WriteLine("Start enumerating discovered processes.");
+                    foreach (ProcessIdentifier identifier in identifiers.ToList())
+                    {
+                        _outputHelper.WriteLine($"- PID:  {identifier.Pid}");
+                        _outputHelper.WriteLine($"  UID:  {identifier.Uid}");
+                        _outputHelper.WriteLine($"  Name: {identifier.Name}");
+
+                        unmatchedPids.Remove(identifier.Pid);
+                    }
+                    _outputHelper.WriteLine("End enumerating discovered processes");
+
+                    Assert.Empty(unmatchedPids);
+                    Assert.Equal(appProcessIds.Count, identifiers.Count());
+
+                    foreach (ProcessIdentifier processIdentifier in identifiers)
+                    {
+                        int pid = processIdentifier.Pid;
+                        Guid uid = processIdentifier.Uid;
+                        string name = processIdentifier.Name;
 #if NET5_0_OR_GREATER
-                    // CHECK 1: Get response for processes using PID, UID, and Name and check for consistency
+                        // CHECK 1: Get response for processes using PID, UID, and Name and check for consistency
 
-                    List<ProcessInfo> processInfoQueriesCheck1 = new List<ProcessInfo>();
+                        List<ProcessInfo> processInfoQueriesCheck1 = new List<ProcessInfo>();
 
-                    processInfoQueriesCheck1.Add(await apiClient.GetProcessWithRetryAsync(_outputHelper, pid: pid));
-                    // Only check with uid if it is non-empty; this can happen in connect mode if the ProcessInfo command fails
-                    // to respond within the short period of time that is used to get the additional process information.
-                    if (uid == Guid.Empty)
-                    {
-                        _outputHelper.WriteLine("Skipped uid-only check because it is empty GUID.");
-                    }
-                    else
-                    {
-                        processInfoQueriesCheck1.Add(await apiClient.GetProcessWithRetryAsync(_outputHelper, uid: uid));
-                    }
+                        processInfoQueriesCheck1.Add(await client.GetProcessWithRetryAsync(_outputHelper, pid: pid));
+                        // Only check with uid if it is non-empty; this can happen in connect mode if the ProcessInfo command fails
+                        // to respond within the short period of time that is used to get the additional process information.
+                        if (uid == Guid.Empty)
+                        {
+                            _outputHelper.WriteLine("Skipped uid-only check because it is empty GUID.");
+                        }
+                        else
+                        {
+                            processInfoQueriesCheck1.Add(await client.GetProcessWithRetryAsync(_outputHelper, uid: uid));
+                        }
 
-                    VerifyProcessInfoEquality(processInfoQueriesCheck1);
+                        VerifyProcessInfoEquality(processInfoQueriesCheck1);
 #endif
-                    // CHECK 2: Get response for requests using PID | PID and UID | PID, UID, and Name and check for consistency
+                        // CHECK 2: Get response for requests using PID | PID and UID | PID, UID, and Name and check for consistency
 
-                    List<ProcessInfo> processInfoQueriesCheck2 = new List<ProcessInfo>();
+                        List<ProcessInfo> processInfoQueriesCheck2 = new List<ProcessInfo>();
 
-                    processInfoQueriesCheck2.Add(await apiClient.GetProcessWithRetryAsync(_outputHelper, pid: pid));
-                    processInfoQueriesCheck2.Add(await apiClient.GetProcessWithRetryAsync(_outputHelper, pid: pid, uid: uid));
-                    processInfoQueriesCheck2.Add(await apiClient.GetProcessWithRetryAsync(_outputHelper, pid: pid, uid: uid, name: name));
+                        processInfoQueriesCheck2.Add(await client.GetProcessWithRetryAsync(_outputHelper, pid: pid));
+                        processInfoQueriesCheck2.Add(await client.GetProcessWithRetryAsync(_outputHelper, pid: pid, uid: uid));
+                        processInfoQueriesCheck2.Add(await client.GetProcessWithRetryAsync(_outputHelper, pid: pid, uid: uid, name: name));
 
-                    VerifyProcessInfoEquality(processInfoQueriesCheck2);
+                        VerifyProcessInfoEquality(processInfoQueriesCheck2);
 
-                    // CHECK 3: Get response for processes using PID and an unassociated (randomly generated) UID and ensure the proper exception is thrown
+                        // CHECK 3: Get response for processes using PID and an unassociated (randomly generated) UID and ensure the proper exception is thrown
 
-                    await VerifyInvalidRequestException(apiClient, pid, Guid.NewGuid(), null);
-                }
+                        await VerifyInvalidRequestException(client, pid, Guid.NewGuid(), null);
+                    }
 
-                // CHECK 4: Get response for processes using invalid PID, UID, or Name and ensure the proper exception is thrown
+                    // CHECK 4: Get response for processes using invalid PID, UID, or Name and ensure the proper exception is thrown
 
-                await VerifyInvalidRequestException(apiClient, -1, null, null);
-                await VerifyInvalidRequestException(apiClient, null, Guid.NewGuid(), null);
-                await VerifyInvalidRequestException(apiClient, null, null, "");
+                    await VerifyInvalidRequestException(client, -1, null, null);
+                    await VerifyInvalidRequestException(client, null, Guid.NewGuid(), null);
+                    await VerifyInvalidRequestException(client, null, null, "");
 
-                // Verify each app instance is reported and shut them down.
-                foreach (AppRunner runner in appRunners)
+                    // Verify each app instance is reported and shut them down.
+                    for (int index = 0; index < appCount; index++)
+                    {
+                        await VerifyProcessAsync(client, identifiers, appProcessIds[index], expectedEnvVars[index]);
+                    }
+                })
+                .AddSendCommandToTargets(TestAppScenarios.AsyncWait.Commands.Continue)
+                .AddToolBeforeShutdownValidation(async (client, token) =>
                 {
-                    Assert.True(runner.Environment.TryGetValue(ExpectedEnvVarName, out string expectedEnvVarValue));
+                    // Query for process identifiers
+                    IEnumerable<ProcessIdentifier> identifiers = await client.GetProcessesAsync();
+                    Assert.NotNull(identifiers);
 
-                    await VerifyProcessAsync(apiClient, identifiers, await runner.ProcessIdTask, expectedEnvVarValue);
-
-                    await runner.SendCommandAsync(TestAppScenarios.AsyncWait.Commands.Continue);
-                }
-            });
-
-            for (int i = 0; i < appCount; i++)
-            {
-                Assert.True(0 == appRunners[i].ExitCode, $"App {i} exit code is non-zero.");
-            }
-
-            // Query for process identifiers
-            identifiers = (await apiClient.GetProcessesAsync()).ToList();
-            Assert.NotNull(identifiers);
-
-            // Verify none of the apps are reported
-            List<int> runnerProcessIds = new(appCount);
-            for (int i = 0; i < appCount; i++)
-            {
-                runnerProcessIds.Add(await appRunners[i].ProcessIdTask);
-            }
-
-            foreach (ProcessIdentifier identifier in identifiers)
-            {
-                Assert.DoesNotContain(identifier.Pid, runnerProcessIds);
-            }
+                    // Verify none of the apps are reported
+                    foreach (ProcessIdentifier identifier in identifiers)
+                    {
+                        Assert.DoesNotContain(identifier.Pid, appProcessIds);
+                    }
+                })
+                .ExecuteAsync(CancellationToken.None);
         }
 
         /// <summary>

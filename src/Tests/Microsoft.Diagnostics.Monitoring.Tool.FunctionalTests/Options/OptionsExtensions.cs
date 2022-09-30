@@ -53,6 +53,18 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon.Options
             return options;
         }
 
+        public static RootOptions DisableMetrics(this RootOptions rootOptions)
+        {
+            if (null == rootOptions.Metrics)
+            {
+                rootOptions.Metrics = new MetricsOptions();
+            }
+
+            rootOptions.Metrics.Enabled = false;
+
+            return rootOptions;
+        }
+
         public static RootOptions EnableInProcessFeatures(this RootOptions options)
         {
             if (null == options.InProcessFeatures)

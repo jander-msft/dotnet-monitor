@@ -4,15 +4,16 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Diagnostics.Monitoring.TestCommon;
+using Microsoft.Diagnostics.Monitoring.TestCommon.Options;
 using Microsoft.Diagnostics.Monitoring.TestCommon.Runners;
 using Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests.Fixtures;
 using Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests.HttpApi;
-using Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests.Runners;
 using Microsoft.Diagnostics.Monitoring.WebApi;
-using Microsoft.Diagnostics.Tools.Monitor;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -36,99 +37,76 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
         /// Tests that turning off metrics via the command line will have the /metrics route not serve metrics.
         /// </summary>
         [Fact]
-        public async Task DisableMetricsViaCommandLineTest()
+        public Task DisableMetricsViaCommandLineTest()
         {
-            await using MonitorCollectRunner toolRunner = new(_outputHelper);
-            toolRunner.DisableMetricsViaCommandLine = true;
-            await toolRunner.StartAsync();
-
-            using HttpClient httpClient = await toolRunner.CreateHttpClientDefaultAddressAsync(_httpClientFactory);
-            ApiClient apiClient = new(_outputHelper, httpClient);
-
-            // Check that /metrics does not serve metrics
-            var validationProblemDetailsException = await Assert.ThrowsAsync<ValidationProblemDetailsException>(
-                () => apiClient.GetMetricsAsync());
-            Assert.Equal(HttpStatusCode.BadRequest, validationProblemDetailsException.StatusCode);
-            Assert.Equal(StatusCodes.Status400BadRequest, validationProblemDetailsException.Details.Status);
+            return ValidateDisabledMetrics(toolOptions =>
+            {
+                toolOptions.CommandLine.EnableMetrics = false;
+            });
         }
 
         /// <summary>
         /// Tests that turning off metrics via configuration will have the /metrics route not serve metrics.
         /// </summary>
         [Fact]
-        public async Task DisableMetricsViaEnvironmentTest()
+        public Task DisableMetricsViaEnvironmentTest()
         {
-            await using MonitorCollectRunner toolRunner = new(_outputHelper);
-            toolRunner.ConfigurationFromEnvironment.Metrics = new()
+            return ValidateDisabledMetrics(toolOptions =>
             {
-                Enabled = false
-            };
-            await toolRunner.StartAsync();
-
-            using HttpClient httpClient = await toolRunner.CreateHttpClientDefaultAddressAsync(_httpClientFactory);
-            ApiClient apiClient = new(_outputHelper, httpClient);
-
-            // Check that /metrics does not serve metrics
-            var validationProblemDetailsException = await Assert.ThrowsAsync<ValidationProblemDetailsException>(
-                () => apiClient.GetMetricsAsync());
-            Assert.Equal(HttpStatusCode.BadRequest, validationProblemDetailsException.StatusCode);
-            Assert.Equal(StatusCodes.Status400BadRequest, validationProblemDetailsException.Details.Status);
+                toolOptions.ConfigureEnvironment(rootOptions =>
+                {
+                    rootOptions.DisableMetrics();
+                });
+            });
         }
 
         /// <summary>
         /// Tests that turning off metrics via settings will have the /metrics route not serve metrics.
         /// </summary>
         [Fact]
-        public async Task DisableMetricsViaSettingsTest()
+        public Task DisableMetricsViaSettingsTest()
         {
-            await using MonitorCollectRunner toolRunner = new(_outputHelper);
-
-            await toolRunner.WriteUserSettingsAsync(new RootOptions()
+            return ValidateDisabledMetrics(toolOptions =>
             {
-                Metrics = new MetricsOptions()
+                toolOptions.ConfigureSettings(rootOptions =>
                 {
-                    Enabled = false
-                }
+                    rootOptions.DisableMetrics();
+                });
             });
-
-            await toolRunner.StartAsync();
-
-            using HttpClient httpClient = await toolRunner.CreateHttpClientDefaultAddressAsync(_httpClientFactory);
-            ApiClient client = new(_outputHelper, httpClient);
-
-            // Check that /metrics does not serve metrics
-            var validationProblemDetailsException = await Assert.ThrowsAsync<ValidationProblemDetailsException>(
-                () => client.GetMetricsAsync());
-            Assert.Equal(HttpStatusCode.BadRequest, validationProblemDetailsException.StatusCode);
-            Assert.Equal(StatusCodes.Status400BadRequest, validationProblemDetailsException.Details.Status);
         }
 
         /// <summary>
         /// Tests that turning off metrics via key-per-file will have the /metrics route not serve metrics.
         /// </summary>
         [Fact]
-        public async Task DisableMetricsViaKeyPerFileTest()
+        public Task DisableMetricsViaKeyPerFileTest()
         {
-            await using MonitorCollectRunner toolRunner = new(_outputHelper);
-
-            toolRunner.WriteKeyPerValueConfiguration(new RootOptions()
+            return ValidateDisabledMetrics(toolOptions =>
             {
-                Metrics = new MetricsOptions()
+                toolOptions.ConfigureKeyPerFile(rootOptions =>
                 {
-                    Enabled = false
-                }
+                    rootOptions.DisableMetrics();
+                });
             });
+        }
 
-            await toolRunner.StartAsync();
-
-            using HttpClient httpClient = await toolRunner.CreateHttpClientDefaultAddressAsync(_httpClientFactory);
-            ApiClient apiClient = new(_outputHelper, httpClient);
-
-            // Check that /metrics does not serve metrics
-            var validationProblemDetailsException = await Assert.ThrowsAsync<ValidationProblemDetailsException>(
-                () => apiClient.GetMetricsAsync());
-            Assert.Equal(HttpStatusCode.BadRequest, validationProblemDetailsException.StatusCode);
-            Assert.Equal(StatusCodes.Status400BadRequest, validationProblemDetailsException.Details.Status);
+        private Task ValidateDisabledMetrics(Action<MonitorToolTestOptions> configure)
+        {
+            return TestHostBuilder.Create(_outputHelper)
+                .UseDiagnosticPort(DiagnosticPortConnectionMode.Connect)
+                .AddMonitorTool(_httpClientFactory, (options, context) =>
+                {
+                    configure(options);
+                })
+                .AddToolValidation(async (client, token) =>
+                {
+                    // Check that /metrics does not serve metrics
+                    var validationProblemDetailsException = await Assert.ThrowsAsync<ValidationProblemDetailsException>(
+                        () => client.GetMetricsAsync());
+                    Assert.Equal(HttpStatusCode.BadRequest, validationProblemDetailsException.StatusCode);
+                    Assert.Equal(StatusCodes.Status400BadRequest, validationProblemDetailsException.Details.Status);
+                })
+                .ExecuteAsync(CancellationToken.None);
         }
     }
 }

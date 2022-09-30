@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests.Runners
         /// <summary>
         /// Sets configuration values via environment variables.
         /// </summary>
-        public RootOptions ConfigurationFromEnvironment { get; } = new();
+        public RootOptions ConfigurationFromEnvironment { get; private set; } = new();
 
         /// <summary>
         /// Determines whether the stacks feaure is enabled.
@@ -197,6 +197,11 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests.Runners
 
         protected virtual void StandardOutputCallback(string line)
         {
+        }
+
+        public void UseConfigurationFromEnvironment(RootOptions options)
+        {
+            ConfigurationFromEnvironment = options;
         }
 
         public void WriteKeyPerValueConfiguration(RootOptions options)

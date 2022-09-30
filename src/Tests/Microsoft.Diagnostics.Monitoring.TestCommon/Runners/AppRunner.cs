@@ -5,6 +5,7 @@
 using Microsoft.Diagnostics.Monitoring.WebApi;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -69,17 +70,22 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon.Runners
         /// </summary>
         public string ScenarioName { get; set; }
 
-        public int AppId { get; }
+        public string AppId { get; }
 
         public bool SetRuntimeIdentifier { get; set; } = true;
 
         public string ProfilerLogLevel { get; set; } = null;
 
         public AppRunner(ITestOutputHelper outputHelper, Assembly testAssembly, int appId = 1, TargetFrameworkMoniker tfm = TargetFrameworkMoniker.Current)
+            : this(outputHelper, testAssembly, FormattableString.Invariant($"App{appId}"), tfm)
+        {
+        }
+
+        public AppRunner(ITestOutputHelper outputHelper, Assembly testAssembly, string appId, TargetFrameworkMoniker tfm)
         {
             AppId = appId;
 
-            _outputHelper = new PrefixedOutputHelper(outputHelper, FormattableString.Invariant($"[App{appId}] "));
+            _outputHelper = new PrefixedOutputHelper(outputHelper, FormattableString.Invariant($"[{appId}] "));
 
             _appPath = AssemblyHelper.GetAssemblyArtifactBinPath(
                 testAssembly,
