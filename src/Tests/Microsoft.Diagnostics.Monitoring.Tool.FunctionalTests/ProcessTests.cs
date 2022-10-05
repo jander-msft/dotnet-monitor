@@ -5,8 +5,10 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Diagnostics.Monitoring.TestCommon;
 using Microsoft.Diagnostics.Monitoring.TestCommon.Runners;
+using Microsoft.Diagnostics.Monitoring.TestCommon.TestBuilder;
 using Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests.Fixtures;
 using Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests.HttpApi;
+using Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests.TestBuilder;
 using Microsoft.Diagnostics.Monitoring.WebApi;
 using Microsoft.Diagnostics.Monitoring.WebApi.Models;
 using Microsoft.Extensions.DependencyInjection;
@@ -47,6 +49,19 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
 #endif
         public Task SingleProcessIdentificationTest(DiagnosticPortConnectionMode mode)
         {
+            return MonitorToolTestBuilder.Create(_outputHelper, _httpClientFactory)
+                .UseDiagnosticPort(mode)
+                .UseAppTarget((context, options) =>
+                {
+
+                })
+                .UseScenario((context, builder) =>
+                {
+
+                })
+                .ExecuteAsync(CancellationToken.None);
+
+
             string expectedEnvVarValue = Guid.NewGuid().ToString("D");
             int appProcessId = -1;
 
