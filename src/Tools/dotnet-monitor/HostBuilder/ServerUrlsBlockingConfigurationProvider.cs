@@ -28,10 +28,21 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             // Block reading of the Urls option if the manager says to block. This will prevent other
             // configuration providers that were configured at a lower priority from providing their
             // value of the Urls option to configuration.
-            if (_manager.IsBlocking && WebHostDefaults.ServerUrlsKey.Equals(key, StringComparison.OrdinalIgnoreCase))
+            if (_manager.IsBlocking)
             {
-                value = string.Empty;
-                return true;
+                if (WebHostDefaults.ServerUrlsKey.Equals(key, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = string.Empty;
+                    return true;
+                }
+#if NET8_0_OR_GREATER
+                if (WebHostDefaults.HttpPortsKey.Equals(key, StringComparison.OrdinalIgnoreCase) ||
+                    WebHostDefaults.HttpsPortsKey.Equals(key, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = string.Empty;
+                    return true;
+                }
+#endif
             }
             return base.TryGet(key, out value);
         }

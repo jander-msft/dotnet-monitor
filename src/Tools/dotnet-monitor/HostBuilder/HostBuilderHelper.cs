@@ -9,6 +9,7 @@ using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Diagnostics.Tools.Monitor
@@ -20,6 +21,8 @@ namespace Microsoft.Diagnostics.Tools.Monitor
         public static IHostBuilder CreateHostBuilder(HostBuilderSettings settings)
         {
             string aspnetUrls = string.Empty;
+            string aspnetHttpPorts = string.Empty;
+            string aspnetHttpsPorts = string.Empty;
             ServerUrlsBlockingConfigurationManager manager = new();
             manager.IsBlocking = true;
 
@@ -114,10 +117,13 @@ namespace Microsoft.Diagnostics.Tools.Monitor
                     // ASP.NET will initially create a configuration that primarily contains
                     // the ASPNETCORE_* environment variables. This IWebHostBuilder configuration callback
                     // is invoked before any of the usual configuration phases (host, app, service, container)
-                    // are executed. Thus, there is opportunity here to get the Urls option to store it and
-                    // clear it so that the initial WebHostOptions does not pick it up during host configuration.
-                    aspnetUrls = webBuilder.GetSetting(WebHostDefaults.ServerUrlsKey);
-                    webBuilder.UseSetting(WebHostDefaults.ServerUrlsKey, string.Empty);
+                    // are executed. Thus, there is opportunity here to get the Urls/Http_Ports/Https_Ports options
+                    // to store and clear them so that the initial WebHostOptions does not pick it up during host configuration.
+                    aspnetUrls = GetAndClearSetting(webBuilder, WebHostDefaults.ServerUrlsKey);
+#if NET8_0_OR_GREATER
+                    aspnetHttpPorts = GetAndClearSetting(webBuilder, WebHostDefaults.HttpPortsKey);
+                    aspnetHttpsPorts = GetAndClearSetting(webBuilder, WebHostDefaults.HttpsPortsKey);
+#endif
 
                     AddressListenResults listenResults = new AddressListenResults();
                     webBuilder.ConfigureServices(services =>
@@ -143,6 +149,15 @@ namespace Microsoft.Diagnostics.Tools.Monitor
                         // is unable to read this option when it starts.
                         manager.IsBlocking = false;
                         string[] urls = ConfigurationHelper.SplitValue(context.Configuration[WebHostDefaults.ServerUrlsKey]);
+#if NET8_0_OR_GREATER
+                        if (urls.Length == 0)
+                        {
+                            List<string> urlsFromPorts = new();
+                            urlsFromPorts.AddRange(ExpandPorts(context.Configuration[WebHostDefaults.HttpPortsKey], Uri.UriSchemeHttp));
+                            urlsFromPorts.AddRange(ExpandPorts(context.Configuration[WebHostDefaults.HttpsPortsKey], Uri.UriSchemeHttps));
+                            urls = urlsFromPorts.ToArray();
+                        }
+#endif
                         manager.IsBlocking = true;
 
                         var metricsOptions = new MetricsOptions();
@@ -167,34 +182,57 @@ namespace Microsoft.Diagnostics.Tools.Monitor
                 })
                 .ConfigureHostConfiguration((IConfigurationBuilder builder) =>
                 {
-                    // Restore the Urls option to the configuration provider that originally provided the value
-                    // before it was cleared during the IWebHostBuilder configuration callback.
-                    if (!string.IsNullOrEmpty(aspnetUrls) &&
-                        builder.TryGetProvider(WebHostDefaults.ServerUrlsKey, out IConfigurationProvider provider))
-                    {
-                        provider.Set(WebHostDefaults.ServerUrlsKey, aspnetUrls);
-                    }
+                    // Restore the Urls/Http_Ports/Https_Ports options to the configuration provider that originally
+                    // provided the value before it was cleared during the IWebHostBuilder configuration callback.
+                    RestoreSetting(builder, WebHostDefaults.ServerUrlsKey, aspnetUrls);
+#if NET8_0_OR_GREATER
+                    RestoreSetting(builder, WebHostDefaults.HttpPortsKey, aspnetHttpPorts);
+                    RestoreSetting(builder, WebHostDefaults.HttpsPortsKey, aspnetHttpsPorts);
+#endif
 
                     // The DOTNET_* and ASPNETCORE_* environment variables were added as part of the host configuration
                     // phase. Before the phase is completed, add a configuration source that will conditionally block
-                    // reading of the Urls options so that they are not picked up by future Kestrel configuration callbacks.
+                    // reading of the Urls/Http_Ports/Https_Ports options so that they are not picked up by future
+                    // Kestrel configuration callbacks.
                     builder.Add(new ServerUrlsBlockingConfigurationSource(manager));
                 })
                 .ConfigureAppConfiguration((IConfigurationBuilder builder) =>
                 {
                     // The settings.json, key-per-file, and DOTNETMONITOR_* environment variables were added as part
                     // of the app configuration phase. Before the phase is completed, add a configuration source that will
-                    // conditionally block reading of the Urls options so that they are not picked up by future Kestrel
-                    // configuration callbacks.
+                    // conditionally block reading of the Urls/Http_Ports/Https_Ports options so that they are not picked
+                    // up by future Kestrel configuration callbacks.
                     builder.Add(new ServerUrlsBlockingConfigurationSource(manager));
                 })
                 .ConfigureContainer((HostBuilderContext context, IServiceCollection services) =>
                 {
                     // Container configuration is the last phase of building the host before the service provider is constructed.
-                    // At this point, all configuration callbacks have been executed. Lift the block on the Urls option so that
-                    // the option may be read from configuration by default.
+                    // At this point, all configuration callbacks have been executed. Lift the block on the Urls/Http_Ports/Https_Ports options
+                    // so that the options may be read from configuration by default.
                     manager.IsBlocking = false;
                 });
+        }
+
+        private static string GetAndClearSetting(IWebHostBuilder webBuilder, string key)
+        {
+            string value = webBuilder.GetSetting(key);
+            webBuilder.UseSetting(key, string.Empty);
+            return value;
+        }
+
+        private static void RestoreSetting(IConfigurationBuilder builder, string key, string value)
+        {
+            if (!string.IsNullOrEmpty(value) &&
+                builder.TryGetProvider(key, out IConfigurationProvider provider))
+            {
+                provider.Set(key, value);
+            }
+        }
+
+        private static IEnumerable<string> ExpandPorts(string ports, string scheme)
+        {
+            return ports.Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                .Select(port => FormattableString.Invariant($"{scheme}://*:{port}"));
         }
 
         private static void AddJsonFileHelper(IConfigurationBuilder builder, HostBuilderResults hostBuilderResults, string filePath)
