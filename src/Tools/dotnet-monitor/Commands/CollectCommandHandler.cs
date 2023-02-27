@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Diagnostics.Monitoring;
 using Microsoft.Diagnostics.Monitoring.WebApi;
 using Microsoft.Diagnostics.Tools.Monitor.Auth;
+using Microsoft.Diagnostics.Tools.Monitor.Exceptions;
 using Microsoft.Diagnostics.Tools.Monitor.Swagger;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -119,6 +120,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Commands
                 services.AddSingleton<ProfilerChannel>();
                 services.ConfigureCollectionRules();
                 services.ConfigureProfiler();
+                services.ConfigureExceptions();
                 services.ConfigureStartupLoggers(authConfigurator);
                 services.AddSingleton<IExperimentalFlags, ExperimentalFlags>();
                 services.ConfigureInProcessFeatures(context.Configuration);
@@ -127,6 +129,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Commands
                 services.AddSingleton<ILogsOperationFactory, LogsOperationFactory>();
                 services.AddSingleton<IMetricsOperationFactory, MetricsOperationFactory>();
                 services.AddSingleton<ITraceOperationFactory, TraceOperationFactory>();
+                services.AddSingleton<IExceptionsOperationFactory, ExceptionsOperationFactory>();
             })
             .ConfigureContainer((HostBuilderContext context, IServiceCollection services) =>
             {
