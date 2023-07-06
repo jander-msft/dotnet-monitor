@@ -1,0 +1,49 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- Azurite requires Node -->
+    <HelixRequiresNode Condition="'$(HelixRequiresAzurite)' == 'true'">true</HelixRequiresNode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Helper to dynamically use a semicolon for path separation at execution time. -->
+    <HelixWorkItemPreCommand Include="SET /p semicolon=%3C%HELIX_CORRELATION_PAYLOAD%\semicolon.txt"
+                             Condition="'$(IsHelixPosixShell)' != 'true'" />
+    <!-- Set TEST_DOTNET_ROOT to same as DOTNET_ROOT (which is provided by ) -->
+    <HelixWorkItemPreCommand Include="export TEST_DOTNET_ROOT=${DOTNET_ROOT}"
+                             Condition="'$(IsHelixPosixShell)' == 'true'" />
+    <HelixWorkItemPreCommand Include="SET TEST_DOTNET_ROOT=%DOTNET_ROOT%"
+                             Condition="'$(IsHelixPosixShell)' != 'true'" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(HelixRequiresNode)' == 'true'">
+    <!-- Install nodejs -->
+    <HelixWorkItemPreCommand Include="$HELIX_CORRELATION_PAYLOAD/installnode.sh $(HelixNodeVersion) $(BuildArch)"
+                             Condition="'$(IsHelixPosixShell)' == 'true'" />
+    <HelixWorkItemPreCommand Include="call %HELIX_CORRELATION_PAYLOAD%\powershell.cmd installnode.ps1 $(HelixNodeVersion)"
+                             Condition="'$(IsHelixPosixShell)' != 'true'" />
+    <!-- Add nodejs to path if does not already exist -->
+    <HelixWorkItemPreCommand Include="type -P node &amp;>/dev/null || export PATH=$HELIX_CORRELATION_PAYLOAD/nodejs:$PATH"
+                             Condition="'$(IsHelixPosixShell)' == 'true'" />
+    <!--
+      NOTE: MSBuild interprests semicolons as item separators; escaping it with %3B isn't sufficient when the item
+      is passed between MSBuild invocations or transformed since it will be interepreted again. Use the semicolon
+      helper variable that was initialized with a single semicolon in a prior step.
+     -->
+    <HelixWorkItemPreCommand Include="where /q node || SET PATH=%HELIX_CORRELATION_PAYLOAD%\nodejs%semicolon%%PATH%"
+                             Condition="'$(IsHelixPosixShell)' != 'true'" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(HelixRequiresAzurite)' == 'true'">
+    <!-- Install Azurite -->
+    <HelixWorkItemPreCommand Include="npm install -g azurite" />
+    <!-- Indicate that tests based on Azurite should not skip if it is not initialized -->
+    <HelixWorkItemPreCommand Include="export TEST_AZURITE_MUST_INITIALIZE=1"
+                             Condition="'$(IsHelixPosixShell)' == 'true'" />
+    <HelixWorkItemPreCommand Include="SET TEST_AZURITE_MUST_INITIALIZE=1"
+                             Condition="'$(IsHelixPosixShell)' != 'true'" />
+  </ItemGroup>
+
+  <Target Name="CollectHelixWorkItems"
+          Outputs="@(HelixWorkItem)" />
+</Project>

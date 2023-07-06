@@ -123,4 +123,7 @@
     <MicrosoftDiagnosticsMonitoringLibraryVersion>$(MicrosoftDiagnosticsMonitoringVersion)</MicrosoftDiagnosticsMonitoringLibraryVersion>
     <MicrosoftDiagnosticsMonitoringEventPipeLibraryVersion>$(MicrosoftDiagnosticsMonitoringEventPipeVersion)</MicrosoftDiagnosticsMonitoringEventPipeLibraryVersion>
   </PropertyGroup>
+  <PropertyGroup Label="Helix Versions">
+    <HelixNodeVersion>18.16.1</HelixNodeVersion>
+  </PropertyGroup>
 </Project>

@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <TargetFrameworks>$(ToolTargetFrameworks)</TargetFrameworks>
+    <!-- TODO: Enable once node and azurite installation are working -->
+    <!--<HelixRequiresAzurite>true</HelixRequiresAzurite>-->
   </PropertyGroup>
 
   <ItemGroup>
