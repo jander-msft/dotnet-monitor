@@ -6,6 +6,7 @@
       assemblies have a binary dependency on the older TFMs.
       -->
     <TargetFrameworks>$(TestTargetFrameworks)</TargetFrameworks>
+    <RuntimeFrameworkVersion>$(AspNetCoreRuntimeFrameworkVersion)</RuntimeFrameworkVersion>
     <NoWarn>;1591;1701</NoWarn>
     <Description>Web Api surface for dotnet-monitor</Description>
     <!-- Tentatively create package so other teams can tentatively consume. -->
