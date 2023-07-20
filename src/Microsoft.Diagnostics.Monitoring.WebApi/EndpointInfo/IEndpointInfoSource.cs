@@ -54,5 +54,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
     internal interface IEndpointInfoSourceInternal : IEndpointInfoSource
     {
         Task<IEnumerable<IEndpointInfo>> GetEndpointInfoAsync(CancellationToken token);
+
+        IServiceProvider GetServiceProvider(IEndpointInfo endpointInfo);
     }
 }

@@ -8,9 +8,16 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
 {
     internal sealed class ExceptionsOperationFactory : IExceptionsOperationFactory
     {
-        public IArtifactOperation Create(IExceptionsStore store, ExceptionsFormat format)
+        private readonly IExceptionsStore _store;
+
+        public ExceptionsOperationFactory(IExceptionsStore store)
         {
-            return new ExceptionsOperation(store, format);
+            _store = store;
+        }
+
+        public IArtifactOperation Create(ExceptionsFormat format)
+        {
+            return new ExceptionsOperation(_store, format);
         }
     }
 }

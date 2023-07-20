@@ -7,7 +7,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
@@ -93,6 +92,11 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             }
 
             return endpointInfos;
+        }
+
+        public IServiceProvider GetServiceProvider(IEndpointInfo endpointInfo)
+        {
+            return _source.GetServiceProvider(endpointInfo);
         }
     }
 }

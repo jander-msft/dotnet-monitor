@@ -3,8 +3,13 @@
 
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Diagnostics.Monitoring;
+using Microsoft.Diagnostics.Monitoring.Options;
 using Microsoft.Diagnostics.Monitoring.WebApi;
+using Microsoft.Diagnostics.Monitoring.WebApi.Exceptions;
 using Microsoft.Diagnostics.Tools.Monitor.Auth;
+using Microsoft.Diagnostics.Tools.Monitor.Exceptions;
+using Microsoft.Diagnostics.Tools.Monitor.LibrarySharing;
+using Microsoft.Diagnostics.Tools.Monitor.StartupHook;
 using Microsoft.Diagnostics.Tools.Monitor.Swagger;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -128,8 +133,6 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Commands
                 services.ConfigureCollectionRules();
                 services.ConfigureLibrarySharing();
                 services.ConfigureProfiler();
-                services.ConfigureStartupHook();
-                services.ConfigureExceptions();
                 services.ConfigureStartupLoggers(authConfigurator);
                 services.AddSingleton<IExperimentalFlags, ExperimentalFlags>();
                 services.ConfigureInProcessFeatures(context.Configuration);
@@ -138,6 +141,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Commands
                 services.AddSingleton<ILogsOperationFactory, LogsOperationFactory>();
                 services.AddSingleton<IMetricsOperationFactory, MetricsOperationFactory>();
                 services.AddSingleton<ITraceOperationFactory, TraceOperationFactory>();
+                services.AddSingleton<IProcessServiceConfigurator>(sp => new ProcessServiceConfigurator(sp, ConfigureProcessServices));
             })
             .ConfigureContainer((HostBuilderContext context, IServiceCollection services) =>
             {
@@ -150,6 +154,25 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Commands
                     manager.IsBlocking = true;
                 }
             });
+        }
+
+        private static void ConfigureProcessServices(IServiceProvider serviceProvider, IServiceCollection services)
+        {
+            services.AddSingleton(serviceProvider.GetRequiredService<IInProcessFeatures>());
+            services.AddSingleton(serviceProvider.GetRequiredService<IOptions<ExceptionsOptions>>());
+            services.AddSingleton(serviceProvider.GetRequiredService<ISharedLibraryService>());
+            services.AddSingleton(serviceProvider.GetRequiredService<ILogger<StartupHookValidator>>());
+
+            services.AddScoped<WrappedEndpointInfo>();
+            services.AddScopedForwarder<IEndpointInfo, WrappedEndpointInfo>();
+
+            services.AddScoped<StartupHookService>();
+            services.AddScopedForwarder<IDiagnosticLifetimeService, StartupHookService>();
+            services.AddTransient<StartupHookValidator>();
+
+            services.AddScoped<IExceptionsStore, ExceptionsStore>();
+            services.AddScoped<IDiagnosticLifetimeService, ExceptionsService>();
+            services.AddScoped<IExceptionsOperationFactory, ExceptionsOperationFactory>();
         }
 
         private static void WatchStdinForDisconnect(IServiceProvider serviceProvider, CancellationToken cancellationToken)

@@ -1,8 +1,13 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Diagnostics.Monitoring.Options;
 using Microsoft.Diagnostics.Monitoring.WebApi;
+using Microsoft.Diagnostics.Monitoring.WebApi.Exceptions;
 using Microsoft.Diagnostics.NETCore.Client;
+using Microsoft.Diagnostics.Tools.Monitor.Exceptions;
+using Microsoft.Diagnostics.Tools.Monitor.StartupHook;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -36,6 +41,9 @@ namespace Microsoft.Diagnostics.Tools.Monitor
 
         private readonly List<EndpointInfo> _activeEndpoints = new();
         private readonly SemaphoreSlim _activeEndpointsSemaphore = new(1);
+        private readonly Dictionary<Guid, AsyncServiceScope> _activeEndpointServiceScopes = new();
+        private readonly IServiceProvider _sharedEndpointServiceProvider;
+        private readonly IProcessServiceConfigurator _processServiceConfigurator;
 
         private readonly ChannelReader<IEndpointInfo> _pendingRemovalReader;
         private readonly ChannelWriter<IEndpointInfo> _pendingRemovalWriter;
@@ -55,11 +63,13 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             IOptions<DiagnosticPortOptions> portOptions,
             IEnumerable<IEndpointInfoSourceCallbacks> callbacks = null,
             OperationTrackerService operationTrackerService = null,
-            ILogger<ServerEndpointInfoSource> logger = null)
+            ILogger<ServerEndpointInfoSource> logger = null,
+            IProcessServiceConfigurator processServiceConfigurator = null)
         {
             _callbacks = callbacks ?? Enumerable.Empty<IEndpointInfoSourceCallbacks>();
             _operationTrackerService = operationTrackerService;
             _portOptions = portOptions.Value;
+            _processServiceConfigurator = processServiceConfigurator;
             _logger = logger;
 
             BoundedChannelOptions channelOptions = new(PendingRemovalChannelCapacity)
@@ -70,6 +80,10 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             Channel<IEndpointInfo> pendingRemovalChannel = Channel.CreateBounded<IEndpointInfo>(channelOptions);
             _pendingRemovalReader = pendingRemovalChannel.Reader;
             _pendingRemovalWriter = pendingRemovalChannel.Writer;
+
+            ServiceCollection services = new();
+            processServiceConfigurator.Configure(services);
+            _sharedEndpointServiceProvider = services.BuildServiceProvider();
         }
 
         public override void Dispose()
@@ -130,6 +144,11 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             List<IEndpointInfo> validEndpoints = new();
             await PruneEndpointsAsync(validEndpoints, linkedSource.Token);
             return validEndpoints;
+        }
+
+        public IServiceProvider GetServiceProvider(IEndpointInfo endpointInfo)
+        {
+            return _activeEndpointServiceScopes[endpointInfo.RuntimeInstanceCookie].ServiceProvider;
         }
 
         /// <summary>
@@ -204,11 +223,27 @@ namespace Microsoft.Diagnostics.Tools.Monitor
                 {
                     _activeEndpoints.Add(endpointInfo);
 
+                    AsyncServiceScope scope = _sharedEndpointServiceProvider.CreateAsyncScope();
+                    _activeEndpointServiceScopes.Add(endpointInfo.RuntimeInstanceCookie, scope);
+                    scope.ServiceProvider.GetRequiredService<WrappedEndpointInfo>().Set(endpointInfo);
+
                     foreach (IEndpointInfoSourceCallbacks callback in _callbacks)
                     {
                         try
                         {
                             await callback.OnAddedEndpointInfoAsync(endpointInfo, token).ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            exceptions.Add(ex);
+                        }
+                    }
+
+                    foreach (IDiagnosticLifetimeService lifetimeService in scope.ServiceProvider.GetServices<IDiagnosticLifetimeService>())
+                    {
+                        try
+                        {
+                            await lifetimeService.StartAsync(token);
                         }
                         catch (Exception ex)
                         {
@@ -249,11 +284,39 @@ namespace Microsoft.Diagnostics.Tools.Monitor
                 IEndpointInfo endpoint = await _pendingRemovalReader.ReadAsync(token);
 
                 List<Exception> exceptions = new();
+
+                if (_activeEndpointServiceScopes.TryGetValue(endpoint.RuntimeInstanceCookie, out AsyncServiceScope stopScope))
+                {
+                    foreach (IDiagnosticLifetimeService lifetimeService in stopScope.ServiceProvider.GetServices<IDiagnosticLifetimeService>())
+                    {
+                        try
+                        {
+                            await lifetimeService.StopAsync(token);
+                        }
+                        catch (Exception ex)
+                        {
+                            exceptions.Add(ex);
+                        }
+                    }
+                }
+
                 foreach (IEndpointInfoSourceCallbacks callback in _callbacks)
                 {
                     try
                     {
                         await callback.OnRemovedEndpointInfoAsync(endpoint, token).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        exceptions.Add(ex);
+                    }
+                }
+
+                if (_activeEndpointServiceScopes.Remove(endpoint.RuntimeInstanceCookie, out AsyncServiceScope disposeScope))
+                {
+                    try
+                    {
+                        await disposeScope.DisposeAsync();
                     }
                     catch (Exception ex)
                     {

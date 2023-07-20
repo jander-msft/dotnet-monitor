@@ -27,6 +27,8 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
         /// situations allow a different process object.
         /// </remarks>
         Task<IProcessInfo> GetProcessAsync(ProcessKey? processKey, CancellationToken token);
+
+        T GetProcessService<T>(IProcessInfo processInfo);
     }
 
     internal interface IProcessInfo

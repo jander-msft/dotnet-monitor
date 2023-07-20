@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Diagnostics.Monitoring.EventPipe;
 using Microsoft.Diagnostics.Monitoring.Options;
+using Microsoft.Diagnostics.Monitoring.WebApi.Exceptions;
 using Microsoft.Diagnostics.Monitoring.WebApi.Models;
 using Microsoft.Diagnostics.Monitoring.WebApi.Validation;
 using Microsoft.Diagnostics.NETCore.Client;
@@ -50,6 +51,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
         private readonly ILogsOperationFactory _logsOperationFactory;
         private readonly IMetricsOperationFactory _metricsOperationFactory;
         private readonly ITraceOperationFactory _traceOperationFactory;
+        private readonly IOptions<ExceptionsOptions> _exceptionsOptions;
 
         public DiagController(ILogger<DiagController> logger,
             IServiceProvider serviceProvider)
@@ -67,6 +69,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
             _logsOperationFactory = serviceProvider.GetRequiredService<ILogsOperationFactory>();
             _metricsOperationFactory = serviceProvider.GetRequiredService<IMetricsOperationFactory>();
             _traceOperationFactory = serviceProvider.GetRequiredService<ITraceOperationFactory>();
+            _exceptionsOptions = serviceProvider.GetRequiredService<IOptions<ExceptionsOptions>>();
         }
 
         /// <summary>
@@ -623,6 +626,75 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
                 }, StackUtilities.GenerateStacksFilename(processInfo.EndpointInfo, plainText), ContentTypeUtilities.MapFormatToContentType(stackFormat), processInfo, tags, asAttachment: false);
 
             }, processKey, Utilities.ArtifactType_Stacks);
+        }
+
+        /// <summary>
+        /// Gets the exceptions from the default process.
+        /// </summary>
+        [HttpGet("exceptions", Name = nameof(GetExceptions))]
+        [ProducesWithProblemDetails(ContentTypes.ApplicationNdJson, ContentTypes.ApplicationJsonSequence, ContentTypes.TextPlain)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [EgressValidation]
+        public Task<ActionResult> GetExceptions(
+            [FromQuery]
+            int? pid = null,
+            [FromQuery]
+            Guid? uid = null,
+            [FromQuery]
+            string name = null)
+        {
+            if (!_exceptionsOptions.Value.GetEnabled())
+            {
+                return Task.FromResult<ActionResult>(NotFound());
+            }
+
+            ProcessKey? processKey = Utilities.GetProcessKey(pid, uid, name);
+
+            return InvokeForProcess(processInfo =>
+            {
+                ExceptionsFormat format = ComputeExceptionsFormat(Request.GetTypedHeaders().Accept) ?? ExceptionsFormat.PlainText;
+
+                IArtifactOperation operation = _diagnosticServices
+                    .GetProcessService<IExceptionsOperationFactory>(processInfo)
+                    .Create(format);
+
+                return new OutputStreamResult(operation);
+
+            }, processKey, Utilities.ArtifactType_Exceptions);
+        }
+
+        private static ExceptionsFormat? ComputeExceptionsFormat(IList<MediaTypeHeaderValue> acceptedHeaders)
+        {
+            if (acceptedHeaders == null || acceptedHeaders.Count == 0)
+            {
+                return null;
+            }
+
+            if (acceptedHeaders.Contains(ContentTypeUtilities.TextPlainHeader))
+            {
+                return ExceptionsFormat.PlainText;
+            }
+            if (acceptedHeaders.Contains(ContentTypeUtilities.NdJsonHeader))
+            {
+                return ExceptionsFormat.NewlineDelimitedJson;
+            }
+            if (acceptedHeaders.Contains(ContentTypeUtilities.JsonSequenceHeader))
+            {
+                return ExceptionsFormat.JsonSequence;
+            }
+            if (acceptedHeaders.Any(ContentTypeUtilities.TextPlainHeader.IsSubsetOf))
+            {
+                return ExceptionsFormat.PlainText;
+            }
+            if (acceptedHeaders.Any(ContentTypeUtilities.NdJsonHeader.IsSubsetOf))
+            {
+                return ExceptionsFormat.NewlineDelimitedJson;
+            }
+            if (acceptedHeaders.Any(ContentTypeUtilities.JsonSequenceHeader.IsSubsetOf))
+            {
+                return ExceptionsFormat.JsonSequence;
+            }
+            return null;
         }
 
         private string GetDiagnosticPortName()

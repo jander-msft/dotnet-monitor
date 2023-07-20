@@ -1,6 +1,7 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
@@ -99,6 +100,13 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             }
 
             return GetProcessAsync(filterOptions, token);
+        }
+
+        public T GetProcessService<T>(IProcessInfo processInfo)
+        {
+            IServiceProvider serviceProvider = _endpointInfoSource.GetServiceProvider(processInfo.EndpointInfo);
+
+            return serviceProvider.GetRequiredService<T>();
         }
 
         private async Task<IProcessInfo> GetProcessAsync(DiagProcessFilter processFilterConfig, CancellationToken token)

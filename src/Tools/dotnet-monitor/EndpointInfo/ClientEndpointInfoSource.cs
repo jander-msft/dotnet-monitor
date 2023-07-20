@@ -70,5 +70,10 @@ namespace Microsoft.Diagnostics.Tools.Monitor
 
             return endpointInfoTasks.Where(t => t.Result != null).Select(t => t.Result);
         }
+
+        public IServiceProvider GetServiceProvider(IEndpointInfo endpointInfo)
+        {
+            throw new NotSupportedException();
+        }
     }
 }

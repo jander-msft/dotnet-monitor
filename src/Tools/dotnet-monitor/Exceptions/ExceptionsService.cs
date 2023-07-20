@@ -8,7 +8,6 @@ using Microsoft.Diagnostics.NETCore.Client;
 using Microsoft.Diagnostics.Tools.Monitor.StartupHook;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -18,81 +17,57 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
     /// Get exception information from default process and store it.
     /// </summary>
     internal sealed class ExceptionsService :
-        BackgroundService
+        BackgroundService,
+        IDiagnosticLifetimeService
     {
-        private readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(5);
-
+        private readonly IEndpointInfo _endpointInfo;
         private readonly IExceptionsStore _exceptionsStore;
-        private readonly IDiagnosticServices _diagnosticServices;
         private readonly IOptions<ExceptionsOptions> _exceptionsOptions;
-        private readonly StartupHookEndpointInfoSourceCallbacks _startupHookEndpointInfoSourceCallbacks;
-
-        private EventExceptionsPipeline _pipeline;
+        private readonly StartupHookService _startupHookeService;
 
         public ExceptionsService(
-            IDiagnosticServices diagnosticServices,
+            IEndpointInfo endpointInfo,
             IOptions<ExceptionsOptions> exceptionsOptions,
             IExceptionsStore exceptionsStore,
-            StartupHookEndpointInfoSourceCallbacks startupHookEndpointInfoSourceCallbacks)
+            StartupHookService startupHookService)
         {
-            _diagnosticServices = diagnosticServices;
+            _endpointInfo = endpointInfo;
             _exceptionsStore = exceptionsStore;
             _exceptionsOptions = exceptionsOptions;
-            _startupHookEndpointInfoSourceCallbacks = startupHookEndpointInfoSourceCallbacks;
+            _startupHookeService = startupHookService;
+        }
+
+        async ValueTask IDiagnosticLifetimeService.StartAsync(CancellationToken cancellationToken)
+        {
+            await StartAsync(cancellationToken);
+        }
+
+        async ValueTask IDiagnosticLifetimeService.StopAsync(CancellationToken cancellationToken)
+        {
+            await StopAsync(cancellationToken);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             if (!_exceptionsOptions.Value.GetEnabled())
             {
+                // Exception history is not enabled
                 return;
             }
 
-            while (!stoppingToken.IsCancellationRequested)
+            if (!await _startupHookeService.GetResultAsync(stoppingToken))
             {
-                try
-                {
-                    // Get default process
-                    IProcessInfo pi = await _diagnosticServices.GetProcessAsync(processKey: null, stoppingToken);
-
-                    bool isStartupHookApplied = false;
-                    _ = _startupHookEndpointInfoSourceCallbacks.ApplyStartupState.TryGetValue(pi.EndpointInfo.RuntimeInstanceCookie, out isStartupHookApplied);
-
-                    // Validate that the process is configured correctly for collecting exceptions.
-                    if (!isStartupHookApplied)
-                    {
-                        // This exception is not user visible.
-                        throw new NotSupportedException();
-                    }
-
-                    DiagnosticsClient client = new(pi.EndpointInfo.Endpoint);
-
-                    EventExceptionsPipelineSettings settings = new();
-                    _pipeline = new EventExceptionsPipeline(client, settings, _exceptionsStore);
-
-                    // Monitor for exceptions
-                    await _pipeline.RunAsync(stoppingToken);
-                }
-                catch (Exception e) when (e is not OperationCanceledException || !stoppingToken.IsCancellationRequested)
-                {
-                    if (null != _pipeline)
-                    {
-                        await _pipeline.DisposeAsync();
-                    }
-                    await Task.Delay(RetryDelay, stoppingToken);
-                }
+                // Startup hook was not applied
+                return;
             }
-        }
 
-        public override async void Dispose()
-        {
-            base.Dispose();
-            if (null != _pipeline)
-            {
-                await _pipeline.DisposeAsync();
-            }
-        }
+            DiagnosticsClient client = new(_endpointInfo.Endpoint);
 
-        private record class UniqueProcessKey(int ProcessId, Guid RuntimeInstanceId);
+            EventExceptionsPipelineSettings settings = new();
+            await using EventExceptionsPipeline pipeline = new(client, settings, _exceptionsStore);
+
+            // Monitor for exceptions
+            await pipeline.RunAsync(stoppingToken);
+        }
     }
 }
