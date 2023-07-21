@@ -59,7 +59,7 @@ namespace CollectionRuleActions.UnitTests
             }, async host =>
             {
                 LoadProfilerCallback callback = new(_outputHelper, host);
-                await using ServerSourceHolder sourceHolder = await _endpointUtilities.StartServerAsync(callback);
+                await using ServerSourceHolder sourceHolder = await ServerSourceBuilder.CreateAndStartAsync(_outputHelper, callback);
 
                 await using AppRunner runner = _endpointUtilities.CreateAppRunner(Assembly.GetExecutingAssembly(), sourceHolder.TransportName, tfm);
                 runner.Architecture = architecture;

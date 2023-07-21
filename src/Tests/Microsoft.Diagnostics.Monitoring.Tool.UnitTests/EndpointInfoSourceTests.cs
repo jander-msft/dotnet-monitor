@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         [Fact]
         public async Task ServerSourceNoConnectionsTest()
         {
-            await using ServerSourceHolder sourceHolder = await _endpointUtilities.StartServerAsync();
+            await using ServerSourceHolder sourceHolder = await ServerSourceBuilder.CreateAndStartAsync(_outputHelper);
 
             var endpointInfos = await _endpointUtilities.GetEndpointInfoAsync(sourceHolder.Source);
             Assert.Empty(endpointInfos);
@@ -50,7 +50,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         public async Task ServerSourceAddRemoveSingleConnectionTest(TargetFrameworkMoniker appTfm)
         {
             EndpointInfoSourceCallback callback = new(_outputHelper);
-            await using ServerSourceHolder sourceHolder = await _endpointUtilities.StartServerAsync(callback);
+            await using ServerSourceHolder sourceHolder = await ServerSourceBuilder.CreateAndStartAsync(_outputHelper, callback);
 
             var endpointInfos = await _endpointUtilities.GetEndpointInfoAsync(sourceHolder.Source);
             Assert.Empty(endpointInfos);
@@ -95,7 +95,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         public async Task ServerSourceAddRemoveMultipleConnectionTest(TargetFrameworkMoniker appTfm)
         {
             EndpointInfoSourceCallback callback = new(_outputHelper);
-            await using ServerSourceHolder sourceHolder = await _endpointUtilities.StartServerAsync(callback);
+            await using ServerSourceHolder sourceHolder = await ServerSourceBuilder.CreateAndStartAsync(_outputHelper, callback);
 
             var endpointInfos = await _endpointUtilities.GetEndpointInfoAsync(sourceHolder.Source);
             Assert.Empty(endpointInfos);
@@ -166,7 +166,12 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
             EndpointInfoSourceCallback callback = new(_outputHelper);
             var operationTrackerService = new OperationTrackerService();
             MockDumpService dumpService = new(operationTrackerService);
-            await using ServerSourceHolder sourceHolder = await _endpointUtilities.StartServerAsync(callback, dumpService, operationTrackerService);
+
+            ServerSourceBuilder builder = new(_outputHelper);
+            await using ServerSourceHolder sourceHolder = await builder
+                .AddCallback(callback)
+                .AddOperationTracker(operationTrackerService)
+                .BuildAndStartAsync();
 
             await using AppRunner runner = _endpointUtilities.CreateAppRunner(Assembly.GetExecutingAssembly(), sourceHolder.TransportName, appTfm);
 

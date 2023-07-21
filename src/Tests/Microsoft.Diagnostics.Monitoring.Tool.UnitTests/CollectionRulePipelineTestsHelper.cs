@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         {
             EndpointInfoSourceCallback endpointInfoCallback = new(outputHelper);
             EndpointUtilities endpointUtilities = new(outputHelper);
-            await using ServerSourceHolder sourceHolder = await endpointUtilities.StartServerAsync(endpointInfoCallback);
+            await using ServerSourceHolder sourceHolder = await ServerSourceBuilder.CreateAndStartAsync(outputHelper, endpointInfoCallback);
 
             await using AppRunner runner = new(outputHelper, Assembly.GetExecutingAssembly(), tfm: tfm);
             runner.ConnectionMode = DiagnosticPortConnectionMode.Connect;

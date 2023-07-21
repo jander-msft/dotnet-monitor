@@ -432,7 +432,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
             startupHookPathForCallback = StartupHookPath;
 #endif
             EndpointInfoSourceCallback callback = new(_outputHelper, startupHookPathForCallback);
-            await using ServerSourceHolder sourceHolder = await _endpointUtilities.StartServerAsync(callback);
+            await using ServerSourceHolder sourceHolder = await ServerSourceBuilder.CreateAndStartAsync(_outputHelper, callback);
 
             await using AppRunner runner = _endpointUtilities.CreateAppRunner(
                 Assembly.GetExecutingAssembly(),

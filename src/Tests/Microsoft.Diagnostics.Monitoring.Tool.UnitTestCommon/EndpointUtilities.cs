@@ -4,12 +4,8 @@
 using Microsoft.Diagnostics.Monitoring.TestCommon.Runners;
 using Microsoft.Diagnostics.Monitoring.WebApi;
 using Microsoft.Diagnostics.Tools.Monitor;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using Moq;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,56 +23,6 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon
         public EndpointUtilities(ITestOutputHelper outputHelper)
         {
             _outputHelper = outputHelper;
-        }
-
-        public async Task<ServerSourceHolder> StartServerAsync(EndpointInfoSourceCallback sourceCallback = null, IDumpService dumpService = null,
-            OperationTrackerService operationTrackerService = null)
-        {
-            DiagnosticPortHelper.Generate(DiagnosticPortConnectionMode.Listen, out _, out string transportName);
-            _outputHelper.WriteLine("Starting server endpoint info source at '" + transportName + "'.");
-
-            List<IEndpointInfoSourceCallbacks> callbacks = new();
-            if (null != sourceCallback)
-            {
-                callbacks.Add(sourceCallback);
-                if (null != dumpService)
-                {
-                    callbacks.Add(new OperationTrackerServiceEndpointInfoSourceCallback(operationTrackerService));
-                }
-            }
-
-            IOptions<DiagnosticPortOptions> portOptions = Extensions.Options.Options.Create(
-                new DiagnosticPortOptions()
-                {
-                    ConnectionMode = DiagnosticPortConnectionMode.Listen,
-                    EndpointName = transportName
-                });
-
-            ScopedEndpointInfo scopedEndpointInfo = new();
-
-            Mock<IServiceProvider> scopedServiceProviderMock = new Mock<IServiceProvider>();
-            scopedServiceProviderMock
-                .Setup(sp => sp.GetService(typeof(ScopedEndpointInfo)))
-                .Returns(scopedEndpointInfo);
-            scopedServiceProviderMock
-                .Setup(sp => sp.GetService(typeof(IEnumerable<IDiagnosticLifetimeService>)))
-                .Returns(Enumerable.Empty<IDiagnosticLifetimeService>());
-
-            Mock<IServiceScope> serviceScopeMock = new Mock<IServiceScope>();
-            serviceScopeMock
-                .Setup(scope => scope.ServiceProvider)
-                .Returns(scopedServiceProviderMock.Object);
-
-            Mock<IServiceScopeFactory> scopeFactoryMock = new Mock<IServiceScopeFactory>();
-            scopeFactoryMock
-                .Setup(factory => factory.CreateScope())
-                .Returns(serviceScopeMock.Object);
-
-            ServerEndpointInfoSource source = new(scopeFactoryMock.Object, portOptions, callbacks, operationTrackerService);
-
-            await source.StartAsync(CancellationToken.None);
-
-            return new ServerSourceHolder(source, transportName);
         }
 
         public AppRunner CreateAppRunner(Assembly testAssembly, string transportName, TargetFrameworkMoniker tfm, int appId = 1)
@@ -110,8 +56,12 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon
 
     internal sealed class ServerSourceHolder : IAsyncDisposable
     {
-        public ServerSourceHolder(ServerEndpointInfoSource source, string transportName)
+        private readonly IServiceProvider _serviceProvider;
+
+        public ServerSourceHolder(IServiceProvider serviceProvider, ServerEndpointInfoSource source, string transportName)
         {
+            _serviceProvider = serviceProvider;
+
             Source = source;
             TransportName = transportName;
         }
@@ -125,6 +75,8 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon
             await Source.StopAsync(CancellationToken.None);
 
             Source.Dispose();
+
+            await DisposableHelper.DisposeAsync(_serviceProvider);
         }
     }
 }

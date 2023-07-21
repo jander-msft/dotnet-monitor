@@ -62,7 +62,7 @@ namespace CollectionRuleActions.UnitTests
                     Assert.True(actionOperationsService.TryCreateFactory(KnownCollectionRuleActions.SetEnvironmentVariable, out ICollectionRuleActionFactoryProxy setFactory));
 
                     EndpointInfoSourceCallback endpointInfoCallback = new(_outputHelper);
-                    await using ServerSourceHolder sourceHolder = await _endpointUtilities.StartServerAsync(endpointInfoCallback);
+                    await using ServerSourceHolder sourceHolder = await ServerSourceBuilder.CreateAndStartAsync(_outputHelper, endpointInfoCallback);
 
                     await using AppRunner runner = _endpointUtilities.CreateAppRunner(Assembly.GetExecutingAssembly(), sourceHolder.TransportName, tfm);
                     runner.ScenarioName = TestAppScenarios.EnvironmentVariables.Name;
@@ -112,7 +112,7 @@ namespace CollectionRuleActions.UnitTests
                     Assert.True(actionOperationsService.TryCreateFactory(KnownCollectionRuleActions.GetEnvironmentVariable, out ICollectionRuleActionFactoryProxy getFactory));
 
                     EndpointInfoSourceCallback endpointInfoCallback = new(_outputHelper);
-                    await using ServerSourceHolder sourceHolder = await _endpointUtilities.StartServerAsync(endpointInfoCallback);
+                    await using ServerSourceHolder sourceHolder = await ServerSourceBuilder.CreateAndStartAsync(_outputHelper, endpointInfoCallback);
 
                     await using AppRunner runner = _endpointUtilities.CreateAppRunner(Assembly.GetExecutingAssembly(), sourceHolder.TransportName, tfm);
                     runner.ScenarioName = TestAppScenarios.EnvironmentVariables.Name;
@@ -179,7 +179,7 @@ namespace CollectionRuleActions.UnitTests
                     Assert.True(actionOperationsService.TryCreateFactory(KnownCollectionRuleActions.GetEnvironmentVariable, out ICollectionRuleActionFactoryProxy getFactory));
 
                     EndpointInfoSourceCallback endpointInfoCallback = new(_outputHelper);
-                    await using ServerSourceHolder sourceHolder = await _endpointUtilities.StartServerAsync(endpointInfoCallback);
+                    await using ServerSourceHolder sourceHolder = await ServerSourceBuilder.CreateAndStartAsync(_outputHelper, endpointInfoCallback);
 
                     await using AppRunner runner = _endpointUtilities.CreateAppRunner(Assembly.GetExecutingAssembly(), sourceHolder.TransportName, tfm);
                     runner.ScenarioName = TestAppScenarios.EnvironmentVariables.Name;

@@ -70,7 +70,7 @@ namespace CollectionRuleActions.UnitTests
                 Assert.True(host.Services.GetService<ICollectionRuleActionOperations>().TryCreateFactory(KnownCollectionRuleActions.CollectGCDump, out factory));
 
                 EndpointInfoSourceCallback callback = new(_outputHelper);
-                await using ServerSourceHolder sourceHolder = await _endpointUtilities.StartServerAsync(callback);
+                await using ServerSourceHolder sourceHolder = await ServerSourceBuilder.CreateAndStartAsync(_outputHelper, callback);
 
                 await using AppRunner runner = _endpointUtilities.CreateAppRunner(Assembly.GetExecutingAssembly(), sourceHolder.TransportName, tfm);
 

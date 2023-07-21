@@ -240,7 +240,7 @@ namespace CollectionRuleActions.UnitTests
                 Assert.True(host.Services.GetService<ICollectionRuleActionOperations>().TryCreateFactory(KnownCollectionRuleActions.CollectLogs, out factory));
 
                 EndpointInfoSourceCallback endpointInfoCallback = new(_outputHelper);
-                await using ServerSourceHolder sourceHolder = await _endpointUtilities.StartServerAsync(endpointInfoCallback);
+                await using ServerSourceHolder sourceHolder = await ServerSourceBuilder.CreateAndStartAsync(_outputHelper, endpointInfoCallback);
 
                 await using AppRunner runner = _endpointUtilities.CreateAppRunner(Assembly.GetExecutingAssembly(), sourceHolder.TransportName, tfm);
                 runner.ScenarioName = TestAppScenarios.Logger.Name;
