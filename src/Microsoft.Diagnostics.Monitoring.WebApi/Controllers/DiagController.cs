@@ -38,7 +38,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
         private const Models.TraceProfile DefaultTraceProfiles = Models.TraceProfile.Cpu | Models.TraceProfile.Http | Models.TraceProfile.Metrics;
 
         private readonly ILogger<DiagController> _logger;
-        private readonly IDiagnosticServices _diagnosticServices;
+        private readonly IMonitoringService _monitoringService;
         private readonly IOptions<DiagnosticPortOptions> _diagnosticPortOptions;
         private readonly IOptions<CallStacksOptions> _callStacksOptions;
         private readonly IOptionsMonitor<GlobalCounterOptions> _counterOptions;
@@ -55,7 +55,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
             IServiceProvider serviceProvider)
         {
             _logger = logger;
-            _diagnosticServices = serviceProvider.GetRequiredService<IDiagnosticServices>();
+            _monitoringService = serviceProvider.GetRequiredService<IMonitoringService>();
             _diagnosticPortOptions = serviceProvider.GetService<IOptions<DiagnosticPortOptions>>();
             _callStacksOptions = serviceProvider.GetRequiredService<IOptions<CallStacksOptions>>();
             _operationsStore = serviceProvider.GetRequiredService<EgressOperationStore>();
@@ -82,7 +82,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
                 IProcessInfo defaultProcessInfo = null;
                 try
                 {
-                    defaultProcessInfo = await _diagnosticServices.GetProcessAsync(null, HttpContext.RequestAborted);
+                    defaultProcessInfo = await _monitoringService.GetProcessAsync(null, HttpContext.RequestAborted);
                 }
                 catch (ArgumentException)
                 {
@@ -97,7 +97,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
                 }
 
                 IList<Models.ProcessIdentifier> processesIdentifiers = new List<Models.ProcessIdentifier>();
-                foreach (IProcessInfo p in await _diagnosticServices.GetProcessesAsync(processFilter: null, HttpContext.RequestAborted))
+                foreach (IProcessInfo p in await _monitoringService.GetProcessesAsync(processFilter: null, HttpContext.RequestAborted))
                 {
                     processesIdentifiers.Add(new Models.ProcessIdentifier()
                     {
@@ -836,7 +836,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
             {
                 return await this.InvokeService(async () =>
                 {
-                    IProcessInfo processInfo = await _diagnosticServices.GetProcessAsync(processKey, HttpContext.RequestAborted);
+                    IProcessInfo processInfo = await _monitoringService.GetProcessAsync(processKey, HttpContext.RequestAborted);
 
                     KeyValueLogScope processInfoScope = new KeyValueLogScope();
                     processInfoScope.AddArtifactEndpointInfo(processInfo.EndpointInfo);

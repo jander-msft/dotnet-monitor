@@ -13,11 +13,14 @@ using System.Threading.Tasks;
 
 namespace Microsoft.Diagnostics.Tools.Monitor
 {
-    internal sealed class MonitoringService : IMonitoringService
+    internal sealed class MonitoringService :
+        IMonitoringService
     {
+        private readonly IDiagnosticServices _diagnosticServices;
         private readonly IServiceProvider _serviceProvider;
 
-        public MonitoringService(ILoggerFactory loggerFactory, IConfiguration configuration)
+        public MonitoringService(ILoggerFactory loggerFactory, IConfiguration configuration,
+            IEndpointInfoSource endpointInfoSource)
         {
             ServiceCollection services = new();
 
@@ -28,7 +31,18 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             services.AddSingleton(loggerFactory);
             services.Add(ServiceDescriptor.Singleton(typeof(ILogger<>), typeof(Logger<>)));
 
+            // Default Process
+            services.ConfigureDefaultProcess(configuration);
+
+            // Endpoints
+            services.AddSingleton(endpointInfoSource);
+
+            // Diagnostics
+            services.AddSingleton<IDiagnosticServices, DiagnosticServices>();
+
             _serviceProvider = services.BuildServiceProvider();
+
+            _diagnosticServices = _serviceProvider.GetRequiredService<IDiagnosticServices>();
         }
 
         public object GetService(Type serviceType)
@@ -54,12 +68,12 @@ namespace Microsoft.Diagnostics.Tools.Monitor
 
         public Task<IProcessInfo> GetProcessAsync(ProcessKey? processKey, CancellationToken token)
         {
-            throw new NotImplementedException();
+            return _diagnosticServices.GetProcessAsync(processKey, token);
         }
 
         public Task<IEnumerable<IProcessInfo>> GetProcessesAsync(DiagProcessFilter processFilter, CancellationToken token)
         {
-            throw new NotImplementedException();
+            return _diagnosticServices.GetProcessesAsync(processFilter, token);
         }
     }
 }

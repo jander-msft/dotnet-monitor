@@ -116,7 +116,6 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Commands
                 services.AddSingleton<IEndpointInfoSource, FilteredEndpointInfoSource>();
                 services.AddSingleton<ServerEndpointInfoSource>();
                 services.AddHostedServiceForwarder<ServerEndpointInfoSource>();
-                services.AddSingleton<IDiagnosticServices, DiagnosticServices>();
                 services.AddSingleton<IDumpService, DumpService>();
                 services.AddSingleton<IEndpointInfoSourceCallbacks, OperationTrackerServiceEndpointInfoSourceCallback>();
                 services.AddSingleton<IRequestLimitTracker, RequestLimitTracker>();
@@ -126,7 +125,6 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Commands
                 services.ConfigureEgress();
                 services.ConfigureMetrics(context.Configuration);
                 services.ConfigureStorage(context.Configuration);
-                services.ConfigureDefaultProcess(context.Configuration);
                 services.AddSingleton<ProfilerChannel>();
                 services.ConfigureCollectionRules();
                 services.ConfigureLibrarySharing();

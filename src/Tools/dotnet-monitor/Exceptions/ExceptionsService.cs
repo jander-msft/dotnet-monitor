@@ -23,19 +23,19 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
         private readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(5);
 
         private readonly IExceptionsStore _exceptionsStore;
-        private readonly IDiagnosticServices _diagnosticServices;
+        private readonly IMonitoringService _monitoringService;
         private readonly IOptions<ExceptionsOptions> _exceptionsOptions;
         private readonly StartupHookEndpointInfoSourceCallbacks _startupHookEndpointInfoSourceCallbacks;
 
         private EventExceptionsPipeline _pipeline;
 
         public ExceptionsService(
-            IDiagnosticServices diagnosticServices,
+            IMonitoringService monitoringService,
             IOptions<ExceptionsOptions> exceptionsOptions,
             IExceptionsStore exceptionsStore,
             StartupHookEndpointInfoSourceCallbacks startupHookEndpointInfoSourceCallbacks)
         {
-            _diagnosticServices = diagnosticServices;
+            _monitoringService = monitoringService;
             _exceptionsStore = exceptionsStore;
             _exceptionsOptions = exceptionsOptions;
             _startupHookEndpointInfoSourceCallbacks = startupHookEndpointInfoSourceCallbacks;
@@ -53,7 +53,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
                 try
                 {
                     // Get default process
-                    IProcessInfo pi = await _diagnosticServices.GetProcessAsync(processKey: null, stoppingToken);
+                    IProcessInfo pi = await _monitoringService.GetProcessAsync(processKey: null, stoppingToken);
 
                     bool isStartupHookApplied = false;
                     _ = _startupHookEndpointInfoSourceCallbacks.ApplyStartupState.TryGetValue(pi.EndpointInfo.RuntimeInstanceCookie, out isStartupHookApplied);

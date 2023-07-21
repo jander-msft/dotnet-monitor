@@ -18,7 +18,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
     internal sealed class MetricsService : BackgroundService
     {
         private MetricsPipeline _counterPipeline;
-        private readonly IDiagnosticServices _services;
+        private readonly IMonitoringService _monitoringService;
         private readonly MetricsStoreService _store;
         private IOptionsMonitor<MetricsOptions> _optionsMonitor;
         private IOptionsMonitor<GlobalCounterOptions> _counterOptions;
@@ -29,7 +29,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
             MetricsStoreService metricsStore)
         {
             _store = metricsStore;
-            _services = serviceProvider.GetRequiredService<IDiagnosticServices>();
+            _monitoringService = serviceProvider.GetRequiredService<IMonitoringService>();
             _optionsMonitor = optionsMonitor;
             _counterOptions = counterOptions;
         }
@@ -47,7 +47,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
 
                 try
                 {
-                    IProcessInfo pi = await _services.GetProcessAsync(processKey: null, stoppingToken);
+                    IProcessInfo pi = await _monitoringService.GetProcessAsync(processKey: null, stoppingToken);
                     var client = new DiagnosticsClient(pi.EndpointInfo.Endpoint);
 
                     MetricsOptions options = _optionsMonitor.CurrentValue;
