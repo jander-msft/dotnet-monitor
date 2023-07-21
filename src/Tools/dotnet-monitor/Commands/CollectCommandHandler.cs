@@ -110,6 +110,9 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Commands
 
                 services.ConfigureTemplates(context.Configuration);
 
+                services.AddSingleton<IMonitoringService, MonitoringService>();
+                services.AddHostedService<MonitoringServiceHostedService>();
+
                 services.AddSingleton<IEndpointInfoSource, FilteredEndpointInfoSource>();
                 services.AddSingleton<ServerEndpointInfoSource>();
                 services.AddHostedServiceForwarder<ServerEndpointInfoSource>();
