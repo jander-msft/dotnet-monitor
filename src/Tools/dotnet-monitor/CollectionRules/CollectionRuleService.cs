@@ -79,6 +79,10 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules
             // BackgroundService.StopAsync wasn't called.
             Dispose();
 
+            // Handle the remaining containers that may be in the channel that were pending shutdown
+            await StopAndDisposeContainersAsync(CancellationToken.None).SafeAwait();
+
+            // Handle the remaining containers that were active
             foreach (CollectionRuleContainer container in containers)
             {
                 await container.DisposeAsync();
@@ -140,7 +144,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules
         {
             return Task.WhenAll(
                 MonitorRuleChangesAsync(token),
-                StopAndDisposeContainerAsync(token));
+                StopAndDisposeContainersAsync(token));
         }
 
         private async Task MonitorRuleChangesAsync(CancellationToken token)
@@ -247,9 +251,9 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules
             }
         }
 
-        private async Task StopAndDisposeContainerAsync(CancellationToken token)
+        private async Task StopAndDisposeContainersAsync(CancellationToken token)
         {
-            while (!token.IsCancellationRequested)
+            while (_containersToRemoveReader.WaitToReadAsync(token))
             {
                 CollectionRuleContainer container = await _containersToRemoveReader.ReadAsync(token);
 

@@ -21,7 +21,10 @@ namespace Microsoft.Diagnostics.Tools.Monitor
     /// <summary>
     /// Aggregates diagnostic endpoints that are established at a transport path via a reversed server.
     /// </summary>
-    internal sealed class ServerEndpointInfoSource : BackgroundService, IEndpointInfoSourceInternal
+    internal sealed class ServerEndpointInfoSource :
+        BackgroundService,
+        IEndpointInfoSourceInternal,
+        IAsyncDisposable
     {
         // The number of items that the pending removal channel will hold before forcing
         // the writer to wait for capacity to be available.
@@ -50,6 +53,8 @@ namespace Microsoft.Diagnostics.Tools.Monitor
         private readonly OperationTrackerService _operationTrackerService;
         private readonly ILogger<ServerEndpointInfoSource> _logger;
 
+        private long _disposalState;
+
         /// <summary>
         /// Constructs a <see cref="ServerEndpointInfoSource"/> that aggregates diagnostic endpoints
         /// from a reversed diagnostics server at path specified by <paramref name="portOptions"/>.
@@ -77,11 +82,25 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             _pendingRemovalWriter = pendingRemovalChannel.Writer;
         }
 
-        public override void Dispose()
+        public async ValueTask DisposeAsync()
         {
-            base.Dispose();
+            if (!DisposableHelper.CanDispose(ref _disposalState))
+                return;
+
+            Dispose();
 
             _pendingRemovalWriter.TryComplete();
+
+            foreach (AsyncServiceScope scope in _activeEndpointServiceScopes.Values)
+            {
+                try
+                {
+                    await scope.DisposeAsync();
+                }
+                catch
+                {
+                }
+            }
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -354,9 +373,12 @@ namespace Microsoft.Diagnostics.Tools.Monitor
                     }
                     else
                     {
-                        _activeEndpoints.RemoveAt(endpointIndex);
-
+                        // Attempt to add to channel before removing from list
+                        // in case cancellation is occurring, so that this endpoint
+                        // doesn't get untracked during cancellation.
                         await _pendingRemovalWriter.WriteAsync(endpoint, token);
+
+                        _activeEndpoints.RemoveAt(endpointIndex);
                     }
                 }
             }

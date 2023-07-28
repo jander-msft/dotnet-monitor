@@ -215,7 +215,9 @@ namespace Microsoft.Diagnostics.Tools.Monitor
                 GenerateApiKeyCommand()
             };
 
-            return root.Parse(args).InvokeAsync();
+            ParseResult result = root.Parse(args);
+            result.Configuration.ProcessTerminationTimeout = null;
+            return result.InvokeAsync();
         }
     }
 
