@@ -57,7 +57,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests.HttpApi
         /// <summary>
         /// GET /processes with retry attempts
         /// </summary>
-        public static async Task<IEnumerable<ProcessIdentifier>> GetProcessesWithRetryAsync(this ApiClient client, ITestOutputHelper outputHelper, int[] pidFilters, int maxAttempts = 5)
+        public static async Task<IEnumerable<ProcessIdentifier>> GetProcessesWithRetryAsync(this ApiClient client, ITestOutputHelper outputHelper, int[] processIds, int maxAttempts = 5)
         {
             IList<ProcessIdentifier> identifiers = null;
 
@@ -70,9 +70,9 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests.HttpApi
 
                 identifiers = (await client.GetProcessesAsync()).ToList();
 
-                if (pidFilters.Length > 0)
+                if (processIds.Length > 0)
                 {
-                    identifiers = identifiers.Where(i => pidFilters.Contains(i.Pid)).ToList();
+                    identifiers = identifiers.Where(i => processIds.Contains(i.Pid)).ToList();
                 }
 
                 // In .NET 5+, the process name comes from the command line from the ProcessInfo command, which can fail
@@ -88,6 +88,36 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests.HttpApi
                 {
                     return identifiers;
                 }
+            }
+
+            throw new InvalidOperationException("Unable to get processes that have process names.");
+        }
+
+        /// <summary>
+        /// Checks that the list of processes is not discoverable in the /processes route.
+        /// </summary>
+        public static async Task CheckProcessesNotExistWithRetryAsync(this ApiClient client, ITestOutputHelper outputHelper, int[] processIds, int maxAttempts = 7)
+        {
+            int retryWaitMilliseconds = 250;
+            int attempt = 0;
+            while (attempt < maxAttempts)
+            {
+                attempt++;
+
+                outputHelper.WriteLine($"Attempt #{attempt} of {maxAttempts}: GET /processes");
+
+                IList<ProcessIdentifier> identifiers = (await client.GetProcessesAsync()).ToList();
+
+                // Check that the list of detected processes does not contain any of the specified process IDs
+                if (!identifiers.Select(i => i.Pid).Intersect(processIds).Any())
+                {
+                    return;
+                }
+
+                await Task.Delay(TimeSpan.FromMilliseconds(retryWaitMilliseconds));
+
+                // Exponentially back off with cap
+                retryWaitMilliseconds = Math.Min(2 * retryWaitMilliseconds, 2_000);
             }
 
             throw new InvalidOperationException("Unable to get processes that have process names.");

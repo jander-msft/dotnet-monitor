@@ -69,14 +69,8 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
                 },
                 postAppValidate: async (client, processId) =>
                 {
-                    // GET /processes and filter to just the single process
-                    IEnumerable<ProcessIdentifier> identifiers = await client.GetProcessesWithRetryAsync(
-                        _outputHelper,
-                        new[] { processId });
-
-                    // Verify app is no longer reported
-                    Assert.NotNull(identifiers);
-                    Assert.Empty(identifiers);
+                    // Validate target app no longer exists in /processes route
+                    await client.CheckProcessesNotExistWithRetryAsync(_outputHelper, new int[] { processId });
                 },
                 configureApp: runner =>
                 {
@@ -123,6 +117,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
             await using IAsyncDisposable _ = appRunners.CreateItemDisposer();
 
             IList<ProcessIdentifier> identifiers;
+            List<int> processIds = new(appRunners.Length);
             await appRunners.ExecuteAsync(async () =>
             {
                 // Scope to only the processes that were launched by the test
@@ -157,6 +152,8 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
                     int pid = processIdentifier.Pid;
                     Guid uid = processIdentifier.Uid;
                     string name = processIdentifier.Name;
+
+                    processIds.Add(pid);
 
                     // CHECK 1: Get response for processes using PID, UID, and Name and check for consistency
 
@@ -208,28 +205,8 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
                 }
             });
 
-            /* TESTFIX - Race condition on process termination and user-mode app processing of it.
-            for (int i = 0; i < appCount; i++)
-            {
-                Assert.True(0 == appRunners[i].ExitCode, $"App {i} exit code is non-zero.");
-            }
-
-            // Query for process identifiers
-            identifiers = (await apiClient.GetProcessesAsync()).ToList();
-            Assert.NotNull(identifiers);
-
-            // Verify none of the apps are reported
-            List<int> runnerProcessIds = new(appCount);
-            for (int i = 0; i < appCount; i++)
-            {
-                runnerProcessIds.Add(await appRunners[i].ProcessIdTask);
-            }
-
-            foreach (ProcessIdentifier identifier in identifiers)
-            {
-                Assert.DoesNotContain(identifier.Pid, runnerProcessIds);
-            }
-            */
+            // Validate the target apps no longer exist in /processes route
+            await apiClient.CheckProcessesNotExistWithRetryAsync(_outputHelper, processIds.ToArray());
         }
 
         /// <summary>
