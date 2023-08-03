@@ -5,6 +5,12 @@ using Microsoft.Diagnostics.Monitoring.Options;
 
 namespace Microsoft.Diagnostics.Monitoring.WebApi
 {
+    internal enum ExceptionCollectionMode
+    {
+        Historical = 0,
+        Live
+    }
+
     /// <summary>
     /// Factory for creating operations that capture exceptions from the target.
     /// </summary>
@@ -13,6 +19,6 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
         /// <summary>
         /// Creates an operation that produces an exceptions artifact.
         /// </summary>
-        IArtifactOperation Create(ExceptionFormat format);
+        IArtifactOperation Create(ExceptionFormat format, ExceptionCollectionMode mode);
     }
 }

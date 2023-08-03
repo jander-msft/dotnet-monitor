@@ -73,7 +73,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
 
                 IArtifactOperation operation = processInfo.EndpointInfo.ServiceProvider
                     .GetRequiredService<IExceptionsOperationFactory>()
-                    .Create(format);
+                    .Create(format, ExceptionCollectionMode.Historical);
 
                 return Result(
                     Utilities.ArtifactType_Exceptions,

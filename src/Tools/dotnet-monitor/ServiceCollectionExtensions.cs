@@ -128,6 +128,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor
             services.RegisterCollectionRuleAction<CollectDumpActionFactory, CollectDumpOptions>(KnownCollectionRuleActions.CollectDump);
             services.RegisterCollectionRuleAction<CollectExceptionsActionFactory, CollectExceptionsOptions>(KnownCollectionRuleActions.CollectExceptions);
             services.RegisterCollectionRuleAction<CollectGCDumpActionFactory, CollectGCDumpOptions>(KnownCollectionRuleActions.CollectGCDump);
+            services.RegisterCollectionRuleAction<CollectLiveExceptionsActionFactory, CollectLiveExceptionsOptions>(KnownCollectionRuleActions.CollectLiveExceptions);
             services.RegisterCollectionRuleAction<CollectLiveMetricsActionFactory, CollectLiveMetricsOptions>(KnownCollectionRuleActions.CollectLiveMetrics);
             services.RegisterCollectionRuleAction<CollectLogsActionFactory, CollectLogsOptions>(KnownCollectionRuleActions.CollectLogs);
             services.RegisterCollectionRuleAction<CollectStacksActionFactory, CollectStacksOptions>(KnownCollectionRuleActions.CollectStacks);
@@ -339,6 +340,8 @@ namespace Microsoft.Diagnostics.Tools.Monitor
         {
             services.AddTransient<IExceptionsOperationFactory, ExceptionsOperationFactory>();
             services.AddScoped<IExceptionsStore, ConfiguredExceptionsStore>();
+            services.AddScoped<ConfiguredExceptionsStoreCallback>();
+            services.AddScopedForwarder<ExceptionsStoreCallback, ConfiguredExceptionsStoreCallback>();
             services.AddScoped<IDiagnosticLifetimeService, ExceptionsService>();
             return services;
         }

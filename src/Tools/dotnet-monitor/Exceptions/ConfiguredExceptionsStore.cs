@@ -18,8 +18,8 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
     {
         private readonly ExceptionsStore _store;
 
-        public ConfiguredExceptionsStore(IOptions<ExceptionsOptions> options)
-            : this(options.Value.GetTopLevelLimit(), callback: null)
+        public ConfiguredExceptionsStore(IOptions<ExceptionsOptions> options, ExceptionsStoreCallback callback)
+            : this(options.Value.GetTopLevelLimit(), callback)
         {
         }
 
@@ -46,6 +46,11 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
         public void RemoveExceptionInstance(ulong exceptionId)
         {
             _store.RemoveExceptionInstance(exceptionId);
+        }
+
+        public void UnhandledExceptionInstance(ulong exceptionId)
+        {
+            _store.UnhandledExceptionInstance(exceptionId);
         }
 
         public IReadOnlyList<IExceptionInstance> GetSnapshot()
@@ -114,6 +119,11 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
                 }
 
                 _callback?.BeforeAdd(instance);
+            }
+
+            public override void Unhandled(ulong exceptionId)
+            {
+                _callback?.Unhandled(exceptionId);
             }
 
             private void RemoveIfNoOuterExceptions(ulong exceptionId)

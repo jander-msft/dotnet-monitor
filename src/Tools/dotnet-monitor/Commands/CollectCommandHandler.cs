@@ -145,6 +145,8 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Commands
                 // Per-process services must be scoped
                 services.AddScoped<ScopedEndpointInfo>();
                 services.AddScopedForwarder<IEndpointInfo, ScopedEndpointInfo>();
+                services.AddScoped<ArtifactOperationService>();
+                services.AddScopedForwarder<IDiagnosticLifetimeService, ArtifactOperationService>();
             })
             .ConfigureContainer((HostBuilderContext context, IServiceCollection services) =>
             {

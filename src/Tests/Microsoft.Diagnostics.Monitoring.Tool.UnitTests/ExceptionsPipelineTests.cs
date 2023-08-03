@@ -421,11 +421,28 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
                 });
         }
 
+        /// <summary>
+        /// Tests that the unhandled CrashingException is detectable.
+        /// </summary>
+        [Fact]
+        public Task EventExceptionsPipeline_CrashingException()
+        {
+            return Execute(
+                TestAppScenarios.Exceptions.SubScenarios.CrashingException,
+                expectedInstanceCount: 1,
+                validate: instances =>
+                {
+                    
+                },
+                expectCrash: true);
+        }
+
         private async Task Execute(
             string subScenarioName,
             int expectedInstanceCount,
             Action<IEnumerable<IExceptionInstance>> validate,
-            Architecture? architecture = null)
+            Architecture? architecture = null,
+            bool expectCrash = false)
         {
             string startupHookPathForCallback = null;
 #if NET8_0_OR_GREATER
@@ -464,14 +481,17 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
                 // Start throwing exceptions.
                 await runner.SendCommandAsync(TestAppScenarios.Exceptions.Commands.Begin);
 
-                // The target process will not acknowledge this command until all exceptions are thrown.
-                await runner.SendCommandAsync(TestAppScenarios.Exceptions.Commands.End);
+                if (!expectCrash)
+                {
+                    // The target process will not acknowledge this command until all exceptions are thrown.
+                    await runner.SendCommandAsync(TestAppScenarios.Exceptions.Commands.End);
+                }
 
                 // Wait for the expected number of exceptions to have been reported
                 await store.InstanceThresholdTask.WaitAsync(timeoutSource.Token);
 
                 validate(store.GetSnapshot());
-            });
+            }, expectCrash);
         }
 
         private static void ValidateStack(IExceptionInstance instance, string expectedMethodName, string expectedModuleName, string expectedClassName, IList<string> expectedParameterTypes = null)
@@ -499,6 +519,10 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
             public TestExceptionsStore(int instanceThreshold = 1)
             {
                 _instanceThreshold = instanceThreshold;
+                if (0 == instanceThreshold)
+                {
+                    _instanceThresholdSource.TrySetResult();
+                }
             }
 
             public void AddExceptionInstance(IExceptionsNameCache cache, ulong exceptionId, ulong groupId, string message, DateTime timestamp, ulong[] stackFrameIds, int threadId, ulong[] innerExceptionIds, string activityId, ActivityIdFormat activityIdFormat)
@@ -544,6 +568,11 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
             }
 
             public void RemoveExceptionInstance(ulong exceptionId)
+            {
+                throw new NotSupportedException();
+            }
+
+            public void UnhandledExceptionInstance(ulong exceptionId)
             {
                 throw new NotSupportedException();
             }

@@ -1,7 +1,6 @@
 ﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-using Microsoft.Diagnostics.Monitoring;
 using Microsoft.Diagnostics.Monitoring.Options;
 using Microsoft.Diagnostics.Monitoring.WebApi;
 using Microsoft.Diagnostics.Monitoring.WebApi.Exceptions;
@@ -15,9 +14,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Utils = Microsoft.Diagnostics.Monitoring.WebApi.Utilities;
 
-namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
+namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions.Operations
 {
-    internal sealed class ExceptionsOperation : IArtifactOperation
+    internal abstract class BaseExceptionsOperation : IArtifactOperation
     {
         private static byte[] JsonRecordDelimiter = new byte[] { (byte)'\n' };
 
@@ -28,17 +27,16 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
         private const char MethodParameterTypesEnd = ')';
 
         private readonly IEndpointInfo _endpointInfo;
-        private readonly ExceptionFormat _format;
-        private readonly IExceptionsStore _store;
 
-        public ExceptionsOperation(IEndpointInfo endpointInfo, IExceptionsStore store, ExceptionFormat format)
+        protected ExceptionFormat Format { get; }
+
+        protected BaseExceptionsOperation(IEndpointInfo endpointInfo, ExceptionFormat format)
         {
             _endpointInfo = endpointInfo;
-            _store = store;
-            _format = format;
+            Format = format;
         }
 
-        public string ContentType => _format switch
+        public string ContentType => Format switch
         {
             ExceptionFormat.PlainText => ContentTypes.TextPlain,
             ExceptionFormat.NewlineDelimitedJson => ContentTypes.ApplicationNdJson,
@@ -48,49 +46,22 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
 
         public bool IsStoppable => false;
 
-        public async Task ExecuteAsync(Stream outputStream, TaskCompletionSource<object> startCompletionSource, CancellationToken token)
-        {
-            startCompletionSource?.TrySetResult(null);
-
-
-            IReadOnlyList<IExceptionInstance> exceptions = _store.GetSnapshot();
-
-            switch (_format)
-            {
-                case ExceptionFormat.JsonSequence:
-                case ExceptionFormat.NewlineDelimitedJson:
-                    await WriteJson(outputStream, exceptions, token);
-                    break;
-                case ExceptionFormat.PlainText:
-                    await WriteText(outputStream, exceptions, token);
-                    break;
-                default:
-                    throw new NotSupportedException();
-            }
-        }
+        public abstract Task ExecuteAsync(Stream outputStream, TaskCompletionSource<object> startCompletionSource, CancellationToken token);
 
         public string GenerateFileName()
         {
-            string extension = _format == ExceptionFormat.PlainText ? "txt" : "json";
+            string extension = Format == ExceptionFormat.PlainText ? "txt" : "json";
             return FormattableString.Invariant($"{Utils.GetFileNameTimeStampUtcNow()}_{_endpointInfo.ProcessId}.exceptions.{extension}");
         }
 
-        public Task StopAsync(CancellationToken token)
+        public virtual Task StopAsync(CancellationToken token)
         {
-            throw new MonitoringException(Strings.ErrorMessage_OperationIsNotStoppable);
+            return Task.CompletedTask;
         }
 
-        private async Task WriteJson(Stream stream, IReadOnlyList<IExceptionInstance> instances, CancellationToken token)
+        protected async Task WriteJsonInstance(Stream stream, IExceptionInstance instance, bool unhandled, CancellationToken token)
         {
-            foreach (IExceptionInstance instance in instances)
-            {
-                await WriteJsonInstance(stream, instance, token);
-            }
-        }
-
-        private async Task WriteJsonInstance(Stream stream, IExceptionInstance instance, CancellationToken token)
-        {
-            if (_format == ExceptionFormat.JsonSequence)
+            if (Format == ExceptionFormat.JsonSequence)
             {
                 await stream.WriteAsync(JsonSequenceRecordSeparator, token);
             }
@@ -156,26 +127,11 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
             await stream.WriteAsync(JsonRecordDelimiter, token);
         }
 
-        private static async Task WriteText(Stream stream, IReadOnlyList<IExceptionInstance> instances, CancellationToken token)
-        {
-            Dictionary<ulong, IExceptionInstance> priorInstances = new(instances.Count);
-            foreach (IExceptionInstance currentInstance in instances)
-            {
-                // Skip writing the exception if it does not have a call stack, which
-                // indicates that the exception was not thrown. It is likely to be referenced
-                // as an inner exception of a thrown exception.
-                if (currentInstance.CallStack?.Frames.Count != 0)
-                {
-                    await WriteTextInstance(stream, currentInstance, priorInstances, token);
-                }
-                priorInstances.Add(currentInstance.Id, currentInstance);
-            }
-        }
-
-        private static async Task WriteTextInstance(
+        protected static async Task WriteTextInstance(
             Stream stream,
             IExceptionInstance currentInstance,
             IDictionary<ulong, IExceptionInstance> priorInstances,
+            bool unhandled,
             CancellationToken token)
         {
             // This format is similar of that which is written to the console when an unhandled exception occurs. Each
@@ -190,7 +146,14 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
 
             await using StreamWriter writer = new(stream, leaveOpen: true);
 
-            await writer.WriteAsync("First chance exception at ");
+            if (unhandled)
+            {
+                await writer.WriteAsync("Unhandled exception at ");
+            }
+            else
+            {
+                await writer.WriteAsync("First chance exception at ");
+            }
             await writer.WriteAsync(currentInstance.Timestamp.ToString("O", CultureInfo.InvariantCulture));
 
             await writer.WriteLineAsync();

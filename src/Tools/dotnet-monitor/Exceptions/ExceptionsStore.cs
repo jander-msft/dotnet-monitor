@@ -74,6 +74,11 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
             }
         }
 
+        public void UnhandledExceptionInstance(ulong exceptionId)
+        {
+            _callback?.Unhandled(exceptionId);
+        }
+
         public IReadOnlyList<IExceptionInstance> GetSnapshot()
         {
             lock (_instances)

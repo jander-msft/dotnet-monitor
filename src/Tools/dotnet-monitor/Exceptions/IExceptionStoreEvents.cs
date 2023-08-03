@@ -5,12 +5,8 @@ using Microsoft.Diagnostics.Monitoring.WebApi.Exceptions;
 
 namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
 {
-    internal abstract class ExceptionsStoreCallback
+    internal interface IExceptionStoreEvents
     {
-        public virtual void AfterAdd(IExceptionInstance instance) { }
-
-        public virtual void BeforeAdd(IExceptionInstance instance) { }
-
-        public virtual void Unhandled(ulong exceptionId) { }
+        void Add(IExceptionInstance instance);
     }
 }

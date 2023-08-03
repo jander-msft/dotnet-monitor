@@ -11,9 +11,9 @@ using Utils = Microsoft.Diagnostics.Monitoring.WebApi.Utilities;
 
 namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
 {
-    internal sealed class CollectExceptionsActionFactory : ICollectionRuleActionFactory<CollectExceptionsOptions>
+    internal sealed class CollectLiveExceptionsActionFactory : ICollectionRuleActionFactory<CollectLiveExceptionsOptions>
     {
-        public ICollectionRuleAction Create(IProcessInfo processInfo, CollectExceptionsOptions options)
+        public ICollectionRuleAction Create(IProcessInfo processInfo, CollectLiveExceptionsOptions options)
         {
             if (null == options)
             {
@@ -23,16 +23,16 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
             ValidationContext context = new(options, processInfo.EndpointInfo.ServiceProvider, items: null);
             Validator.ValidateObject(options, context, validateAllProperties: true);
 
-            return new CollectExceptionsAction(processInfo, options);
+            return new CollectLiveExceptionsAction(processInfo, options);
         }
     }
 
-    internal sealed class CollectExceptionsAction :
-        CollectionRuleEgressActionBase<CollectExceptionsOptions>
+    internal sealed class CollectLiveExceptionsAction :
+        CollectionRuleEgressActionBase<CollectLiveExceptionsOptions>
     {
         private readonly IExceptionsOperationFactory _operationFactory;
 
-        public CollectExceptionsAction(IProcessInfo processInfo, CollectExceptionsOptions options)
+        public CollectLiveExceptionsAction(IProcessInfo processInfo, CollectLiveExceptionsOptions options)
             : base(processInfo.EndpointInfo.ServiceProvider, processInfo, options)
         {
             _operationFactory = ServiceProvider.GetRequiredService<IExceptionsOperationFactory>();
@@ -42,7 +42,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
         {
             KeyValueLogScope scope = Utils.CreateArtifactScope(Utils.ArtifactType_Exceptions, EndpointInfo);
 
-            IArtifactOperation operation = _operationFactory.Create(Options.GetFormat(), ExceptionCollectionMode.Historical);
+            IArtifactOperation operation = _operationFactory.Create(Options.GetFormat(), ExceptionCollectionMode.Live);
 
             EgressOperation egressOperation = new EgressOperation(
                 operation,
