@@ -61,6 +61,7 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon
                 public const string InnerThrownException = nameof(InnerThrownException);
                 public const string AggregateException = nameof(AggregateException);
                 public const string ReflectionTypeLoadException = nameof(ReflectionTypeLoadException);
+                public const string CrashingException = nameof(CrashingException);
             }
 
             public static class Commands

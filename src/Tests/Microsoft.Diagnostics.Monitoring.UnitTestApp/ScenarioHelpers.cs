@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp
 {
     internal static class ScenarioHelpers
     {
-        public static async Task<int> RunScenarioAsync(Func<ILogger, Task<int>> func, CancellationToken token, Action<ILogger> beforeReadyCallback = null)
+        public static async Task<int> RunScenarioAsync(Func<ILogger, Task<int>> func, CancellationToken token, Action<ILogger> beforeReadyCallback = null, bool catchExceptions = true)
         {
             // Create JSON console logger so that app can communicate with test host
             // with structured responses.
@@ -57,7 +57,7 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp
             {
                 result = await func(logger);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (catchExceptions)
             {
                 Console.Error.WriteLine($"Exception: {ex}");
             }
