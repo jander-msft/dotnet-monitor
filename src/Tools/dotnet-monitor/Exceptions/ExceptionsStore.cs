@@ -21,10 +21,13 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
         private const int ChannelCapacity = 1000;
 
         private readonly ExceptionsStoreCallback _callback;
-        private readonly Channel<ExceptionInstanceEntry> _channel;
+        private readonly Channel<ExceptionEntry> _channel;
         private readonly CancellationTokenSource _disposalSource = new();
         private readonly KeyedCollection<ulong, ExceptionInstance> _instances = new ExceptionInstanceCollection();
         private readonly Task _processingTask;
+
+        private readonly StringBuilder _exceptionTypeNameBuilder = new();
+        private readonly Dictionary<ulong, string> _exceptionTypeNameMap = new();
 
         private long _disposalState;
 
@@ -74,6 +77,11 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
             }
         }
 
+        public void UnhandledException(ulong exceptionId)
+        {
+
+        }
+
         public IReadOnlyList<IExceptionInstance> GetSnapshot()
         {
             lock (_instances)
@@ -82,10 +90,10 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
             }
         }
 
-        private static Channel<ExceptionInstanceEntry> CreateChannel()
+        private static Channel<ExceptionEntry> CreateChannel()
         {
             // TODO: Hook callback for when items are dropped and report appropriately.
-            return Channel.CreateBounded<ExceptionInstanceEntry>(
+            return Channel.CreateBounded<ExceptionEntry>(
                 new BoundedChannelOptions(ChannelCapacity)
                 {
                     AllowSynchronousContinuations = false,
@@ -97,60 +105,83 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
 
         private async Task ProcessEntriesAsync(CancellationToken token)
         {
-            StringBuilder _builder = new();
-            Dictionary<ulong, string> _exceptionTypeNameMap = new();
-
             bool shouldReadEntry = await _channel.Reader.WaitToReadAsync(token);
             while (shouldReadEntry)
             {
-                ExceptionInstanceEntry entry = await _channel.Reader.ReadAsync(token);
+                ExceptionEntry entry = await _channel.Reader.ReadAsync(token);
 
-                // CONSIDER: If the group ID could not be found, either the identification information was not sent
-                // by the EventSource in the target application OR it hasn't been sent yet due to multithreaded collision
-                // in the target application where the same exception information is being logged by two or more threads
-                // at the same time; one will return sooner and report the correct IDs potentially before those IDs are
-                // produced by the EventSource. May need to cache this incomplete information and attempt to reconstruct
-                // it in the future, with either periodic retry OR registering a callback system for the missing IDs.
-                if (entry.Cache.TryGetExceptionGroup(entry.GroupId, out ulong exceptionClassId, out _, out _))
+                switch (entry)
                 {
-                    string exceptionTypeName;
-                    if (!_exceptionTypeNameMap.TryGetValue(exceptionClassId, out exceptionTypeName))
-                    {
-                        _builder.Clear();
-                        NameFormatter.BuildClassName(_builder, entry.Cache.NameCache, exceptionClassId);
-                        exceptionTypeName = _builder.ToString();
-                    }
-
-                    string moduleName = string.Empty;
-                    if (entry.Cache.NameCache.ClassData.TryGetValue(exceptionClassId, out ClassData exceptionClassData))
-                    {
-                        moduleName = NameFormatter.GetModuleName(entry.Cache.NameCache, exceptionClassData.ModuleId);
-                    }
-
-                    CallStackModel callStack = GenerateCallStack(entry.StackFrameIds, entry.Cache, entry.ThreadId);
-
-                    ExceptionInstance instance = new(
-                        entry.ExceptionId,
-                        exceptionTypeName,
-                        moduleName,
-                        entry.Message,
-                        entry.Timestamp,
-                        callStack,
-                        entry.InnerExceptionIds,
-                        entry.ActivityId,
-                        entry.ActivityIdFormat);
-
-                    _callback?.BeforeAdd(instance);
-
-                    lock (_instances)
-                    {
-                        _instances.Add(instance);
-                    }
-
-                    _callback?.AfterAdd(instance);
-                }
+                    case ExceptionInstanceEntry instanceEntry:
+                        HandleExceptionInstance(instanceEntry);
+                        break;
+                    case ExceptionUnhandledEntry unhandledEntry:
+                        HandleExceptionUnhandled(unhandledEntry);
+                        break;
+                    default:
+                        throw new NotSupportedException();
+                };
 
                 shouldReadEntry = await _channel.Reader.WaitToReadAsync(token);
+            }
+        }
+
+        private void HandleExceptionInstance(ExceptionInstanceEntry entry)
+        {
+            // CONSIDER: If the group ID could not be found, either the identification information was not sent
+            // by the EventSource in the target application OR it hasn't been sent yet due to multithreaded collision
+            // in the target application where the same exception information is being logged by two or more threads
+            // at the same time; one will return sooner and report the correct IDs potentially before those IDs are
+            // produced by the EventSource. May need to cache this incomplete information and attempt to reconstruct
+            // it in the future, with either periodic retry OR registering a callback system for the missing IDs.
+            if (entry.Cache.TryGetExceptionGroup(entry.GroupId, out ulong exceptionClassId, out _, out _))
+            {
+                string exceptionTypeName;
+                if (!_exceptionTypeNameMap.TryGetValue(exceptionClassId, out exceptionTypeName))
+                {
+                    _exceptionTypeNameBuilder.Clear();
+                    NameFormatter.BuildClassName(_exceptionTypeNameBuilder, entry.Cache.NameCache, exceptionClassId);
+                    exceptionTypeName = _exceptionTypeNameBuilder.ToString();
+                }
+
+                string moduleName = string.Empty;
+                if (entry.Cache.NameCache.ClassData.TryGetValue(exceptionClassId, out ClassData exceptionClassData))
+                {
+                    moduleName = NameFormatter.GetModuleName(entry.Cache.NameCache, exceptionClassData.ModuleId);
+                }
+
+                CallStackModel callStack = GenerateCallStack(entry.StackFrameIds, entry.Cache, entry.ThreadId);
+
+                ExceptionInstance instance = new(
+                    entry.ExceptionId,
+                    exceptionTypeName,
+                    moduleName,
+                    entry.Message,
+                    entry.Timestamp,
+                    callStack,
+                    entry.InnerExceptionIds,
+                    entry.ActivityId,
+                    entry.ActivityIdFormat);
+
+                _callback?.BeforeAdd(instance);
+
+                lock (_instances)
+                {
+                    _instances.Add(instance);
+                }
+
+                _callback?.AfterAdd(instance);
+            }
+        }
+
+        private void HandleExceptionUnhandled(ExceptionUnhandledEntry entry)
+        {
+            // It is highly unlikely that the unhandled exception will not be in the store
+            // since unhandled exceptions are detected very shortly after their first chance encounter.
+            // Guard against missing it in the list of instances.
+            if (_instances.TryGetValue(entry.ExceptionId, out ExceptionInstance instance))
+            {
+                _callback?.Unhandled(instance);
             }
         }
 
@@ -176,7 +207,18 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
             return StackUtilities.TranslateCallStackToModel(callStack, cache.NameCache);
         }
 
-        private sealed class ExceptionInstanceEntry
+        private abstract class ExceptionEntry
+        {
+            protected ExceptionEntry(ulong exceptionId)
+            {
+                ExceptionId = exceptionId;
+            }
+
+            public ulong ExceptionId { get; }
+        }
+
+        private sealed class ExceptionInstanceEntry :
+            ExceptionEntry
         {
             public ExceptionInstanceEntry(
                 IExceptionsNameCache cache,
@@ -189,9 +231,9 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
                 ulong[] innerExceptionIds,
                 string activityId,
                 ActivityIdFormat activityIdFormat)
+                : base(exceptionId)
             {
                 Cache = cache;
-                ExceptionId = exceptionId;
                 GroupId = groupId;
                 Message = message;
                 Timestamp = timestamp;
@@ -203,8 +245,6 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
             }
 
             public IExceptionsNameCache Cache { get; }
-
-            public ulong ExceptionId { get; }
 
             public ulong GroupId { get; }
 
@@ -221,6 +261,15 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
             public string ActivityId { get; }
 
             public ActivityIdFormat ActivityIdFormat { get; }
+        }
+
+        private sealed class ExceptionUnhandledEntry :
+            ExceptionEntry
+        {
+            public ExceptionUnhandledEntry(ulong exceptionId)
+                : base(exceptionId)
+            {
+            }
         }
 
         private sealed class ExceptionInstanceCollection :

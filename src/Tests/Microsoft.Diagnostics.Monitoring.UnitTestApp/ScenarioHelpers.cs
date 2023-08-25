@@ -56,9 +56,8 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp
             {
                 result = await func(logger);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (WriteExceptionAndReturnFalse(ex))
             {
-                Console.Error.WriteLine($"Exception: {ex}");
             }
 
             logger.ScenarioState(TestAppScenarios.ScenarioState.Finished);
@@ -156,6 +155,12 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp
             }
 
             return commandReceived;
+        }
+
+        private static bool WriteExceptionAndReturnFalse(Exception ex)
+        {
+            Console.Error.WriteLine($"Exception: {ex}");
+            return false;
         }
 
         private sealed class JsonConsoleLoggerProvider : ILoggerProvider

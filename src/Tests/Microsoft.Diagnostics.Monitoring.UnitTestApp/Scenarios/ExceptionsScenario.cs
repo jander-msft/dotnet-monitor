@@ -59,6 +59,9 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios
             CliCommand reflectionTypeLoadExceptionCommand = new(TestAppScenarios.Exceptions.SubScenarios.ReflectionTypeLoadException);
             reflectionTypeLoadExceptionCommand.SetAction(ReflectionTypeLoadExceptionAsync);
 
+            CliCommand unhandledExceptionCommand = new(TestAppScenarios.Exceptions.SubScenarios.UnhandledException);
+            unhandledExceptionCommand.SetAction(ThrowUnhandledAsync);
+
             CliCommand scenarioCommand = new(TestAppScenarios.Exceptions.Name);
             scenarioCommand.Subcommands.Add(singleExceptionCommand);
             scenarioCommand.Subcommands.Add(multipleExceptionsCommand);
@@ -74,6 +77,7 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios
             scenarioCommand.Subcommands.Add(innerThrownExceptionCommand);
             scenarioCommand.Subcommands.Add(aggregateExceptionCommand);
             scenarioCommand.Subcommands.Add(reflectionTypeLoadExceptionCommand);
+            scenarioCommand.Subcommands.Add(unhandledExceptionCommand);
             return scenarioCommand;
         }
 
@@ -343,6 +347,17 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp.Scenarios
                 await ScenarioHelpers.WaitForCommandAsync(TestAppScenarios.Exceptions.Commands.End, logger);
 
                 return 0;
+            }, token);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private static Task<int> ThrowUnhandledAsync(ParseResult result, CancellationToken token)
+        {
+            return ScenarioHelpers.RunScenarioAsync(async logger =>
+            {
+                await ScenarioHelpers.WaitForCommandAsync(TestAppScenarios.Exceptions.Commands.Begin, logger);
+
+                throw new InvalidOperationException();
             }, token);
         }
 

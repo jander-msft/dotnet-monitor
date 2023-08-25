@@ -3,6 +3,7 @@
 
 using Microsoft.Diagnostics.Monitoring.StartupHook.Exceptions.Eventing;
 using System;
+using System.Threading;
 
 namespace Microsoft.Diagnostics.Monitoring.StartupHook.Exceptions.Pipeline.Steps
 {
@@ -31,6 +32,8 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Exceptions.Pipeline.Steps
             if (_eventSource.IsEnabled())
             {
                 _eventSource.ExceptionInstanceUnhandled(_idSource.GetId(exception));
+
+                Thread.Sleep(TimeSpan.FromSeconds(3));
             }
 
             _next(exception, context);

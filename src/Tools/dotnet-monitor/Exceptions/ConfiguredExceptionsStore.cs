@@ -48,6 +48,11 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
             _store.RemoveExceptionInstance(exceptionId);
         }
 
+        public void UnhandledException(ulong exceptionId)
+        {
+            _store.UnhandledException(exceptionId);
+        }
+
         public IReadOnlyList<IExceptionInstance> GetSnapshot()
         {
             return _store.GetSnapshot();
@@ -114,6 +119,11 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
                 }
 
                 _callback?.BeforeAdd(instance);
+            }
+
+            public override void Unhandled(IExceptionInstance instance)
+            {
+
             }
 
             private void RemoveIfNoOuterExceptions(ulong exceptionId)

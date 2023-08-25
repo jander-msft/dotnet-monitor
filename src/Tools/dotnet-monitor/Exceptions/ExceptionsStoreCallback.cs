@@ -10,5 +10,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
         public virtual void AfterAdd(IExceptionInstance instance) { }
 
         public virtual void BeforeAdd(IExceptionInstance instance) { }
+
+        public virtual void Unhandled(IExceptionInstance instance) { }
     }
 }

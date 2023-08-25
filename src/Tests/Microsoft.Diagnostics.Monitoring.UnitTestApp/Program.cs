@@ -29,7 +29,9 @@ namespace Microsoft.Diagnostics.Monitoring.UnitTestApp
                 TraceEventsScenario.Command()
             };
 
-            return root.Parse(args).InvokeAsync();
+            ParseResult result = root.Parse(args);
+            result.Configuration.EnableDefaultExceptionHandler = false;
+            return result.InvokeAsync();
         }
     }
 }
