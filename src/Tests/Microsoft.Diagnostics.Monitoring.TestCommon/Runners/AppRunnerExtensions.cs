@@ -21,7 +21,7 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon.Runners
             return builder.ToString();
         }
 
-        public static async Task ExecuteAsync(this AppRunner runner, Func<Task> func)
+        public static async Task ExecuteAsync(this AppRunner runner, Func<Task> func, bool expectCrash = false)
         {
             try
             {
@@ -31,7 +31,10 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon.Runners
 
                 await func();
 
-                await runner.SendEndScenarioAsync();
+                if (!expectCrash)
+                {
+                    await runner.SendEndScenarioAsync();
+                }
 
                 // This gives the app time to send out any remaining stdout/stderr messages,
                 // exit properly, and delete its diagnostic pipe.
