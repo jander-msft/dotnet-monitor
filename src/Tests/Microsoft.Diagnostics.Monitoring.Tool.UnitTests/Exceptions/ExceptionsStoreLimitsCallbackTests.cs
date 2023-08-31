@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using Xunit;
 
-namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
+namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests.Exceptions
 {
     public sealed class ExceptionsStoreLimitsCallbackTests
     {
@@ -199,15 +199,18 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         private sealed class TestExceptionsStore : IExceptionsStore
         {
             public void AddExceptionInstance(IExceptionsNameCache cache, ulong exceptionId, ulong groupId, string message, DateTime timestamp, ulong[] stackFrameIds, int threadId, ulong[] innerExceptionIds, string activityId, ActivityIdFormat activityIdFormat)
-                => throw new NotImplementedException();
+                => throw new NotSupportedException();
 
             public IReadOnlyList<IExceptionInstance> GetSnapshot()
-                => throw new NotImplementedException();
+                => throw new NotSupportedException();
 
             public void RemoveExceptionInstance(ulong exceptionId)
             {
                 RemovedExceptionIds.Add(exceptionId);
             }
+
+            public void UnhandledException(ulong exceptionId)
+                => throw new NotSupportedException();
 
             public List<ulong> RemovedExceptionIds = new List<ulong>();
         }

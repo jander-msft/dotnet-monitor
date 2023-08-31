@@ -12,5 +12,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
         public void AfterRemove(IExceptionInstance instance);
 
         public void BeforeAdd(IExceptionInstance instance);
+
+        public void Unhandled(IExceptionInstance instance);
     }
 }

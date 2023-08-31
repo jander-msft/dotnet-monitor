@@ -10,7 +10,7 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
+namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests.Exceptions
 {
     public sealed class ExceptionsStoreTests
     {
@@ -45,8 +45,8 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
             ulong ExpectedId = 1;
 
             // Arrange
-            ThresholdCallback callback = new(ExpectedCount);
-            await using ExceptionsStore store = new(new[] { new PassThroughCallbackFactory(callback) });
+            ThresholdExceptionsStoreCallback callback = new(ExpectedCount);
+            await using ExceptionsStore store = new(PassThroughExceptionsStoreCallbackFactory.CreateFactories(callback));
 
             IExceptionsNameCache cache = CreateCache();
 
@@ -74,8 +74,8 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
             ulong ExpectedId3 = 3;
 
             // Arrange
-            ThresholdCallback callback = new(ExpectedCount);
-            await using ExceptionsStore store = new(new[] { new PassThroughCallbackFactory(callback) });
+            ThresholdExceptionsStoreCallback callback = new(ExpectedCount);
+            await using ExceptionsStore store = new(PassThroughExceptionsStoreCallbackFactory.CreateFactories(callback));
 
             IExceptionsNameCache cache = CreateCache();
 
@@ -115,13 +115,13 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
 
             // Arrange
             AggregateCallback aggregateCallback = new();
-            await using ExceptionsStore store = new(new[] { new PassThroughCallbackFactory(aggregateCallback) });
+            await using ExceptionsStore store = new(PassThroughExceptionsStoreCallbackFactory.CreateFactories(aggregateCallback));
 
             IExceptionsNameCache cache = CreateCache();
 
             // Act
-            ThresholdCallback thresholdCallback1 = new(2, 0);
-            using (CallbackRegistration.Register(aggregateCallback, thresholdCallback1))
+            ThresholdExceptionsStoreCallback thresholdCallback1 = new(2, 0);
+            using (aggregateCallback.RegisterCallback(thresholdCallback1))
             {
                 AddExceptionInstance(store, cache, ExpectedId1);
                 AddExceptionInstance(store, cache, ExpectedId2);
@@ -129,8 +129,8 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
                 await thresholdCallback1.WaitForThresholdsAsync(CommonTestTimeouts.GeneralTimeout);
             }
 
-            ThresholdCallback thresholdCallback2 = new(0, 1);
-            using (CallbackRegistration.Register(aggregateCallback, thresholdCallback2))
+            ThresholdExceptionsStoreCallback thresholdCallback2 = new(0, 1);
+            using (aggregateCallback.RegisterCallback(thresholdCallback2))
             {
                 RemoveExceptionInstance(store, ExpectedId2);
 
@@ -156,13 +156,13 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
 
             // Arrange
             AggregateCallback aggregateCallback = new();
-            await using ExceptionsStore store = new(new[] { new PassThroughCallbackFactory(aggregateCallback) });
+            await using ExceptionsStore store = new(PassThroughExceptionsStoreCallbackFactory.CreateFactories(aggregateCallback));
 
             IExceptionsNameCache cache = CreateCache();
 
             // Act
-            ThresholdCallback addThreeCallback = new(3, 0);
-            using (CallbackRegistration.Register(aggregateCallback, addThreeCallback))
+            ThresholdExceptionsStoreCallback addThreeCallback = new(3, 0);
+            using (aggregateCallback.RegisterCallback(addThreeCallback))
             {
                 AddExceptionInstance(store, cache, ExpectedId1);
                 AddExceptionInstance(store, cache, ExpectedId2);
@@ -171,8 +171,8 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
                 await addThreeCallback.WaitForThresholdsAsync(CommonTestTimeouts.GeneralTimeout);
             }
 
-            ThresholdCallback removeThreeCallback = new(0, 3);
-            using (CallbackRegistration.Register(aggregateCallback, removeThreeCallback))
+            ThresholdExceptionsStoreCallback removeThreeCallback = new(0, 3);
+            using (aggregateCallback.RegisterCallback(removeThreeCallback))
             {
                 RemoveExceptionInstance(store, ExpectedId1);
                 RemoveExceptionInstance(store, ExpectedId2);
@@ -198,13 +198,13 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
 
             // Arrange
             AggregateCallback aggregateCallback = new();
-            await using ExceptionsStore store = new(new[] { new PassThroughCallbackFactory(aggregateCallback) });
+            await using ExceptionsStore store = new(PassThroughExceptionsStoreCallbackFactory.CreateFactories(aggregateCallback));
 
             IExceptionsNameCache cache = CreateCache();
 
             // Act
-            ThresholdCallback addTwoCallback = new(2, 0);
-            using (CallbackRegistration.Register(aggregateCallback, addTwoCallback))
+            ThresholdExceptionsStoreCallback addTwoCallback = new(2, 0);
+            using (aggregateCallback.RegisterCallback(addTwoCallback))
             {
                 AddExceptionInstance(store, cache, ExpectedId1);
                 AddExceptionInstance(store, cache, ExpectedId2);
@@ -212,24 +212,24 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
                 await addTwoCallback.WaitForThresholdsAsync(CommonTestTimeouts.GeneralTimeout);
             }
 
-            ThresholdCallback removeOneCallback = new(0, 1);
-            using (CallbackRegistration.Register(aggregateCallback, removeOneCallback))
+            ThresholdExceptionsStoreCallback removeOneCallback = new(0, 1);
+            using (aggregateCallback.RegisterCallback(removeOneCallback))
             {
                 RemoveExceptionInstance(store, ExpectedId1);
 
                 await removeOneCallback.WaitForThresholdsAsync(CommonTestTimeouts.GeneralTimeout);
             }
 
-            ThresholdCallback addOneCallback = new(1, 0);
-            using (CallbackRegistration.Register(aggregateCallback, addOneCallback))
+            ThresholdExceptionsStoreCallback addOneCallback = new(1, 0);
+            using (aggregateCallback.RegisterCallback(addOneCallback))
             {
                 AddExceptionInstance(store, cache, ExpectedId3);
 
                 await addOneCallback.WaitForThresholdsAsync(CommonTestTimeouts.GeneralTimeout);
             }
 
-            ThresholdCallback removeTwoCallback = new(0, 2);
-            using (CallbackRegistration.Register(aggregateCallback, removeTwoCallback))
+            ThresholdExceptionsStoreCallback removeTwoCallback = new(0, 2);
+            using (aggregateCallback.RegisterCallback(removeTwoCallback))
             {
                 RemoveExceptionInstance(store, ExpectedId2);
                 RemoveExceptionInstance(store, ExpectedId3);
@@ -268,113 +268,50 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
             store.RemoveExceptionInstance(exceptionId);
         }
 
-        private sealed class PassThroughCallbackFactory : IExceptionsStoreCallbackFactory
-        {
-            private readonly IExceptionsStoreCallback _callback;
-
-            public PassThroughCallbackFactory(IExceptionsStoreCallback callback)
-            {
-                _callback = callback ?? throw new ArgumentNullException(nameof(callback));
-            }
-
-            public IExceptionsStoreCallback Create(IExceptionsStore store)
-            {
-                return _callback;
-            }
-        }
-
-        private sealed class ThresholdCallback : ExceptionsStoreCallbackBase
-        {
-            private readonly TaskCompletionSource _addCompletionSource =
-                new(TaskCreationOptions.RunContinuationsAsynchronously);
-            private readonly int _addThreshold;
-
-            private readonly TaskCompletionSource _removeCompletionSource =
-                new(TaskCreationOptions.RunContinuationsAsynchronously);
-            private readonly int _removeThreshold;
-
-            private int _addCount;
-            private int _removeCount;
-
-            public ThresholdCallback(int addThreshold, int removeThreshold = 0)
-            {
-                _addThreshold = addThreshold;
-                _removeThreshold = removeThreshold;
-
-                SetIfAtTarget(_addCompletionSource, 0, addThreshold);
-                SetIfAtTarget(_removeCompletionSource, 0, removeThreshold);
-            }
-
-            public override void AfterAdd(IExceptionInstance instance)
-            {
-                SetIfAtTarget(_addCompletionSource, ++_addCount, _addThreshold);
-            }
-
-            public override void AfterRemove(IExceptionInstance instance)
-            {
-                SetIfAtTarget(_removeCompletionSource, ++_removeCount, _removeThreshold);
-            }
-
-            public Task WaitForThresholdsAsync(TimeSpan timeout) =>
-                Task.WhenAll(
-                    _addCompletionSource.Task,
-                    _removeCompletionSource.Task)
-                .WaitAsync(timeout);
-
-            private static void SetIfAtTarget(TaskCompletionSource source, int value, int target)
-            {
-                if (value == target)
-                {
-                    source.SetResult();
-                }
-            }
-        }
-
         private sealed class AggregateCallback : ExceptionsStoreCallbackBase
         {
-            public readonly ICollection<IExceptionsStoreCallback> Callbacks
-                = new List<IExceptionsStoreCallback>();
+            private readonly List<IExceptionsStoreCallback> _callbacks = new();
 
             public override void AfterAdd(IExceptionInstance instance)
             {
-                foreach (IExceptionsStoreCallback callback in Callbacks)
+                foreach (IExceptionsStoreCallback callback in _callbacks)
                     callback.AfterAdd(instance);
             }
 
             public override void AfterRemove(IExceptionInstance instance)
             {
-                foreach (IExceptionsStoreCallback callback in Callbacks)
+                foreach (IExceptionsStoreCallback callback in _callbacks)
                     callback.AfterRemove(instance);
             }
 
             public override void BeforeAdd(IExceptionInstance instance)
             {
-                foreach (IExceptionsStoreCallback callback in Callbacks)
+                foreach (IExceptionsStoreCallback callback in _callbacks)
                     callback.BeforeAdd(instance);
             }
-        }
 
-        private sealed class CallbackRegistration : IDisposable
-        {
-            private readonly AggregateCallback _aggregateCallback;
-            private readonly ThresholdCallback _thresholdCallback;
-
-            private CallbackRegistration(AggregateCallback aggregateCallback, ThresholdCallback thresholdCallback)
+            public IDisposable RegisterCallback(IExceptionsStoreCallback callback)
             {
-                _aggregateCallback = aggregateCallback ?? throw new ArgumentNullException(nameof(aggregateCallback));
-                _thresholdCallback = thresholdCallback ?? throw new ArgumentNullException(nameof(thresholdCallback));
+                _callbacks.Add(callback);
+
+                return new Registration(this, callback);
             }
 
-            public void Dispose()
+            private sealed class Registration : IDisposable
             {
-                _aggregateCallback.Callbacks.Remove(_thresholdCallback);
-            }
+                private readonly AggregateCallback _aggregateCallback;
+                private readonly IExceptionsStoreCallback _callback;
 
-            public static IDisposable Register(AggregateCallback aggregateCallback, ThresholdCallback thresholdCallback)
-            {
-                aggregateCallback.Callbacks.Add(thresholdCallback);
+                public Registration(AggregateCallback aggregateCallback, IExceptionsStoreCallback callback)
+                {
+                    _aggregateCallback = aggregateCallback ?? throw new ArgumentNullException(nameof(aggregateCallback));
+                    _callback = callback ?? throw new ArgumentNullException(nameof(callback));
+                }
 
-                return new CallbackRegistration(aggregateCallback, thresholdCallback);
+                public void Dispose()
+                {
+                    _aggregateCallback._callbacks.Remove(_callback);
+                }
             }
         }
     }

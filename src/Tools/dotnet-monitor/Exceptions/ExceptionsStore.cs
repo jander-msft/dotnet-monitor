@@ -101,7 +101,9 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
 
         public void UnhandledException(ulong exceptionId)
         {
-
+            ExceptionUnhandledEntry entry = new(exceptionId);
+            // This should never fail to write because the behavior is to drop the oldest.
+            _channel.Writer.TryWrite(entry);
         }
 
         public IReadOnlyList<IExceptionInstance> GetSnapshot()
@@ -166,15 +168,14 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
                     exceptionTypeName = _exceptionTypeNameBuilder.ToString();
                 }
 
-                        entry.ActivityId,
-                        entry.ActivityIdFormat);
+                string moduleName = string.Empty;
+                if (entry.Cache.NameCache.ClassData.TryGetValue(exceptionClassId, out ClassData exceptionClassData))
+                {
+                    moduleName = NameFormatter.GetModuleName(entry.Cache.NameCache, exceptionClassData.ModuleId);
+                }
 
-                    for (int i = 0; i < _callbacks.Count; i++)
-                    {
-                        _callbacks[i].BeforeAdd(instance);
-                    }
+                CallStackModel callStack = GenerateCallStack(entry.StackFrameIds, entry.Cache, entry.ThreadId);
 
-                    lock (_instances)
                 ExceptionInstance instance = new(
                     entry.ExceptionId,
                     exceptionTypeName,
@@ -186,13 +187,20 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
                     entry.ActivityId,
                     entry.ActivityIdFormat);
 
-                    for (int i = 0; i < _callbacks.Count; i++)
-                    {
-                        _callbacks[i].AfterAdd(instance);
-                    }
+                for (int i = 0; i < _callbacks.Count; i++)
+                {
+                    _callbacks[i].BeforeAdd(instance);
                 }
 
-                _callback?.AfterAdd(instance);
+                lock (_instances)
+                {
+                    _instances.Add(instance);
+                }
+
+                for (int i = 0; i < _callbacks.Count; i++)
+                {
+                    _callbacks[i].AfterAdd(instance);
+                }
             }
         }
 
@@ -203,7 +211,10 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
             // Guard against missing it in the list of instances.
             if (_instances.TryGetValue(entry.ExceptionId, out ExceptionInstance instance))
             {
-                _callback?.Unhandled(instance);
+                for (int i = 0; i < _callbacks.Count; i++)
+                {
+                    _callbacks[i].Unhandled(instance);
+                }
             }
         }
 

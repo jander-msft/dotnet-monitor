@@ -9,6 +9,7 @@ using Microsoft.Diagnostics.Monitoring.WebApi.Stacks;
 using Microsoft.Diagnostics.Tools.Monitor.Exceptions;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
@@ -20,7 +21,7 @@ using Xunit;
 using Xunit.Abstractions;
 using CallStack = Microsoft.Diagnostics.Monitoring.WebApi.Models.CallStack;
 
-namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
+namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests.Exceptions
 {
     [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
     public sealed class ExceptionsPipelineTests
@@ -85,11 +86,16 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         {
             DateTime baselineTimestamp = DateTime.UtcNow;
 
+            ThresholdExceptionsStoreCallback thresholdCallback = new(addThreshold: 1);
+
             return Execute(
                 TestAppScenarios.Exceptions.SubScenarios.SingleException,
-                expectedInstanceCount: 1,
-                validate: store =>
+                new[] { thresholdCallback },
+                validateStore: async (store, cancellationToken) =>
                 {
+                    // Wait for the expected number of exceptions to have been reported
+                    await thresholdCallback.WaitForThresholdsAsync(cancellationToken);
+
                     IExceptionInstance instance = Assert.Single(store.GetSnapshot());
                     Assert.NotNull(instance);
                     Assert.NotEqual(0UL, instance.Id);
@@ -112,11 +118,16 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
 
             DateTime baselineTimestamp = DateTime.UtcNow;
 
+            ThresholdExceptionsStoreCallback thresholdCallback = new(ExpectedInstanceCount);
+
             return Execute(
                 TestAppScenarios.Exceptions.SubScenarios.RepeatException,
-                expectedInstanceCount: ExpectedInstanceCount,
-                validate: store =>
+                new[] { thresholdCallback },
+                validateStore: async (store, cancellationToken) =>
                 {
+                    // Wait for the expected number of exceptions to have been reported
+                    await thresholdCallback.WaitForThresholdsAsync(cancellationToken);
+
                     IReadOnlyList<IExceptionInstance> instances = store.GetSnapshot();
 
                     Assert.Equal(ExpectedInstanceCount, instances.Count);
@@ -145,11 +156,16 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         [Fact]
         public Task EventExceptionsPipeline_AsyncException()
         {
+            ThresholdExceptionsStoreCallback thresholdCallback = new(addThreshold: 1);
+
             return Execute(
                 TestAppScenarios.Exceptions.SubScenarios.AsyncException,
-                expectedInstanceCount: 1,
-                validate: store =>
+                new[] { thresholdCallback },
+                validateStore: async (store, cancellationToken) =>
                 {
+                    // Wait for the expected number of exceptions to have been reported
+                    await thresholdCallback.WaitForThresholdsAsync(cancellationToken);
+
                     IExceptionInstance instance = Assert.Single(store.GetSnapshot());
                     Assert.NotNull(instance);
                     Assert.NotEqual(0UL, instance.Id);
@@ -166,11 +182,16 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         [Fact]
         public Task EventExceptionsPipeline_FrameworkException()
         {
+            ThresholdExceptionsStoreCallback thresholdCallback = new(addThreshold: 1);
+
             return Execute(
                 TestAppScenarios.Exceptions.SubScenarios.FrameworkException,
-                expectedInstanceCount: 1,
-                validate: store =>
+                new[] { thresholdCallback },
+                validateStore: async (store, cancellationToken) =>
                 {
+                    // Wait for the expected number of exceptions to have been reported
+                    await thresholdCallback.WaitForThresholdsAsync(cancellationToken);
+
                     IExceptionInstance instance = Assert.Single(store.GetSnapshot());
                     Assert.NotNull(instance);
                     Assert.NotEqual(0UL, instance.Id);
@@ -187,11 +208,16 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         [Fact]
         public Task EventExceptionsPipeline_CustomException()
         {
+            ThresholdExceptionsStoreCallback thresholdCallback = new(addThreshold: 1);
+
             return Execute(
                 TestAppScenarios.Exceptions.SubScenarios.CustomException,
-                expectedInstanceCount: 1,
-                validate: store =>
+                new[] { thresholdCallback },
+                validateStore: async (store, cancellationToken) =>
                 {
+                    // Wait for the expected number of exceptions to have been reported
+                    await thresholdCallback.WaitForThresholdsAsync(cancellationToken);
+
                     IExceptionInstance instance = Assert.Single(store.GetSnapshot());
                     Assert.NotNull(instance);
                     Assert.NotEqual(0UL, instance.Id);
@@ -208,11 +234,16 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         [Fact]
         public Task EventExceptionsPipeline_EsotericStackFrameTypes()
         {
+            ThresholdExceptionsStoreCallback thresholdCallback = new(addThreshold: 1);
+
             return Execute(
                 TestAppScenarios.Exceptions.SubScenarios.EsotericStackFrameTypes,
-                expectedInstanceCount: 1,
-                validate: store =>
+                new[] { thresholdCallback },
+                validateStore: async (store, cancellationToken) =>
                 {
+                    // Wait for the expected number of exceptions to have been reported
+                    await thresholdCallback.WaitForThresholdsAsync(cancellationToken);
+
                     IExceptionInstance instance = Assert.Single(store.GetSnapshot());
                     Assert.NotNull(instance);
                     Assert.NotEqual(0UL, instance.Id);
@@ -230,11 +261,16 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         [MemberData(nameof(ProfilerHelper.GetArchitecture), MemberType = typeof(ProfilerHelper))]
         public Task EventExceptionsPipeline_ReversePInvokeException(Architecture architecture)
         {
+            ThresholdExceptionsStoreCallback thresholdCallback = new(addThreshold: 1);
+
             return Execute(
                 TestAppScenarios.Exceptions.SubScenarios.ReversePInvokeException,
-                expectedInstanceCount: 1,
-                validate: store =>
+                new[] { thresholdCallback },
+                validateStore: async (store, cancellationToken) =>
                 {
+                    // Wait for the expected number of exceptions to have been reported
+                    await thresholdCallback.WaitForThresholdsAsync(cancellationToken);
+
                     IExceptionInstance instance = Assert.Single(store.GetSnapshot());
                     Assert.NotNull(instance);
                     Assert.NotEqual(0UL, instance.Id);
@@ -252,11 +288,16 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         [Fact]
         public Task EventExceptionsPipeline_DynamicMethodException()
         {
+            ThresholdExceptionsStoreCallback thresholdCallback = new(addThreshold: 1);
+
             return Execute(
                 TestAppScenarios.Exceptions.SubScenarios.DynamicMethodException,
-                expectedInstanceCount: 1,
-                validate: store =>
+                new[] { thresholdCallback },
+                validateStore: async (store, cancellationToken) =>
                 {
+                    // Wait for the expected number of exceptions to have been reported
+                    await thresholdCallback.WaitForThresholdsAsync(cancellationToken);
+
                     IExceptionInstance instance = Assert.Single(store.GetSnapshot());
                     Assert.NotNull(instance);
                     Assert.NotEqual(0UL, instance.Id);
@@ -273,11 +314,16 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         [Fact]
         public Task EventExceptionsPipeline_ArrayException()
         {
+            ThresholdExceptionsStoreCallback thresholdCallback = new(addThreshold: 1);
+
             return Execute(
                 TestAppScenarios.Exceptions.SubScenarios.ArrayException,
-                expectedInstanceCount: 1,
-                validate: store =>
+                new TestExceptionsStore(instanceThreshold: 1),
+                validateStore: async (store, cancellationToken) =>
                 {
+                    // Wait for the expected number of exceptions to have been reported
+                    await thresholdCallback.WaitForThresholdsAsync(cancellationToken);
+
                     IExceptionInstance instance = Assert.Single(store.GetSnapshot());
                     Assert.NotNull(instance);
                     Assert.NotEqual(0UL, instance.Id);
@@ -296,11 +342,16 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         {
             const int ExpectedInstanceCount = 2;
 
+            ThresholdExceptionsStoreCallback thresholdCallback = new(ExpectedInstanceCount);
+
             return Execute(
                 TestAppScenarios.Exceptions.SubScenarios.InnerUnthrownException,
-                ExpectedInstanceCount,
-                validate: store =>
+                new[] { thresholdCallback },
+                validateStore: async (store, cancellationToken) =>
                 {
+                    // Wait for the expected number of exceptions to have been reported
+                    await thresholdCallback.WaitForThresholdsAsync(cancellationToken);
+
                     IReadOnlyList<IExceptionInstance> instances = store.GetSnapshot();
 
                     Assert.Equal(ExpectedInstanceCount, instances.Count);
@@ -331,11 +382,16 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         {
             const int ExpectedInstanceCount = 2;
 
+            ThresholdExceptionsStoreCallback thresholdCallback = new(ExpectedInstanceCount);
+
             return Execute(
                 TestAppScenarios.Exceptions.SubScenarios.InnerThrownException,
-                ExpectedInstanceCount,
-                validate: store =>
+                new[] { thresholdCallback },
+                validateStore: async (store, cancellationToken) =>
                 {
+                    // Wait for the expected number of exceptions to have been reported
+                    await thresholdCallback.WaitForThresholdsAsync(cancellationToken);
+
                     IReadOnlyList<IExceptionInstance> instances = store.GetSnapshot();
 
                     Assert.Equal(ExpectedInstanceCount, instances.Count);
@@ -366,11 +422,16 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         {
             const int ExpectedInstanceCount = 4;
 
+            ThresholdExceptionsStoreCallback thresholdCallback = new(ExpectedInstanceCount);
+
             return Execute(
                 TestAppScenarios.Exceptions.SubScenarios.AggregateException,
-                ExpectedInstanceCount,
-                validate: store =>
+                new[] { thresholdCallback },
+                validateStore: async (store, cancellationToken) =>
                 {
+                    // Wait for the expected number of exceptions to have been reported
+                    await thresholdCallback.WaitForThresholdsAsync(cancellationToken);
+
                     IReadOnlyList<IExceptionInstance> instances = store.GetSnapshot();
 
                     List<IExceptionInstance> instanceList = new(instances);
@@ -425,11 +486,16 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         {
             const int ExpectedInstanceCount = 3;
 
+            ThresholdExceptionsStoreCallback thresholdCallback = new(ExpectedInstanceCount);
+
             return Execute(
                 TestAppScenarios.Exceptions.SubScenarios.ReflectionTypeLoadException,
-                ExpectedInstanceCount,
-                validate: store =>
+                new[] { thresholdCallback },
+                validateStore: async (store, cancellationToken) =>
                 {
+                    // Wait for the expected number of exceptions to have been reported
+                    await thresholdCallback.WaitForThresholdsAsync(cancellationToken);
+
                     List<IExceptionInstance> instanceList = new(store.GetSnapshot());
 
                     Assert.Equal(ExpectedInstanceCount, instanceList.Count);
@@ -472,11 +538,16 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         [Fact]
         public Task EventExceptionsPipeline_IncludeSingle()
         {
+            ThresholdExceptionsStoreCallback thresholdCallback = new(addThreshold: 1);
+
             return Execute(
                 TestAppScenarios.Exceptions.SubScenarios.SingleException,
-                expectedInstanceCount: 1,
-                validate: store =>
+                new[] { thresholdCallback },
+                validateStore: async (store, cancellationToken) =>
                 {
+                    // Wait for the expected number of exceptions to have been reported
+                    await thresholdCallback.WaitForThresholdsAsync(cancellationToken);
+
                     IExceptionInstance instance = Assert.Single(store.GetSnapshot());
 
                     ExceptionsConfigurationSettings full = new()
@@ -499,11 +570,16 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         [Fact]
         public Task EventExceptionsPipeline_IncludeMultiple()
         {
+            ThresholdExceptionsStoreCallback thresholdCallback = new(addThreshold: 3);
+
             return Execute(
                 TestAppScenarios.Exceptions.SubScenarios.MultipleExceptions,
-                expectedInstanceCount: 3,
-                validate: store =>
+                new[] { thresholdCallback },
+                validateStore: async (store, cancellationToken) =>
                 {
+                    // Wait for the expected number of exceptions to have been reported
+                    await thresholdCallback.WaitForThresholdsAsync(cancellationToken);
+
                     IReadOnlyList<IExceptionInstance> instances = store.GetSnapshot();
 
                     var expectedIncludeInstancesList = instances.Where(instance => !instance.TypeName.Equals(CustomGenericsException)).ToList();
@@ -530,11 +606,16 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         [Fact]
         public Task EventExceptionsPipeline_ExcludeMultiple()
         {
+            ThresholdExceptionsStoreCallback thresholdCallback = new(addThreshold: 3);
+
             return Execute(
                 TestAppScenarios.Exceptions.SubScenarios.MultipleExceptions,
-                expectedInstanceCount: 3,
-                validate: store =>
+                new[] { thresholdCallback },
+                validateStore: async (store, cancellationToken) =>
                 {
+                    // Wait for the expected number of exceptions to have been reported
+                    await thresholdCallback.WaitForThresholdsAsync(cancellationToken);
+
                     IReadOnlyList<IExceptionInstance> instances = store.GetSnapshot();
 
                     var expectedExcludeInstancesList = instances.Where(instance => !instance.TypeName.Equals(CustomGenericsException)).ToList();
@@ -561,11 +642,16 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         [Fact]
         public Task EventExceptionsPipeline_ExcludeBasic()
         {
+            ThresholdExceptionsStoreCallback thresholdCallback = new(addThreshold: 1);
+
             return Execute(
                 TestAppScenarios.Exceptions.SubScenarios.SingleException,
-                expectedInstanceCount: 1,
-                validate: store =>
+                new[] { thresholdCallback },
+                validateStore: async (store, cancellationToken) =>
                 {
+                    // Wait for the expected number of exceptions to have been reported
+                    await thresholdCallback.WaitForThresholdsAsync(cancellationToken);
+
                     IExceptionInstance instance = Assert.Single(store.GetSnapshot());
 
                     ExceptionsConfigurationSettings full = new()
@@ -588,11 +674,16 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         [Fact]
         public Task EventExceptionsPipeline_UnhandledException()
         {
+            ThresholdExceptionsStoreCallback thresholdCallback = new(addThreshold: 1);
+
             return Execute(
                 TestAppScenarios.Exceptions.SubScenarios.UnhandledException,
-                expectedInstanceCount: 1,
-                validate: async store =>
+                new[] { thresholdCallback },
+                validateStore: async (store, cancellationToken) =>
                 {
+                    // Wait for the expected number of exceptions to have been reported
+                    await thresholdCallback.WaitForThresholdsAsync(cancellationToken);
+
                     IExceptionInstance instance = Assert.Single(store.GetSnapshot());
 
                     Assert.NotNull(instance);
@@ -638,8 +729,8 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
 
         private async Task Execute(
             string subScenarioName,
-            int expectedInstanceCount,
-            Action<TestExceptionsStore> validate,
+            IEnumerable<IExceptionsStoreCallback> storeCallbacks,
+            Func<IExceptionsStore, CancellationToken, Task> validateStore,
             Architecture? architecture = null,
             bool expectCrash = false)
         {
@@ -669,7 +760,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
             {
                 await newEndpointInfoTask;
 
-                TestExceptionsStore store = new(expectedInstanceCount);
+                TestExceptionsStore store = new(storeCallbacks);
 
                 EventExceptionsPipelineSettings settings = new();
                 await using EventExceptionsPipeline pipeline = new(newEndpointInfoTask.Result.Endpoint, settings, store);
@@ -680,16 +771,14 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
                 // Start throwing exceptions.
                 await runner.SendCommandAsync(TestAppScenarios.Exceptions.Commands.Begin);
 
+                // The target will not wait on the End command if an exception is unhandled.
                 if (!expectCrash)
                 {
                     // The target process will not acknowledge this command until all exceptions are thrown.
                     await runner.SendCommandAsync(TestAppScenarios.Exceptions.Commands.End);
                 }
 
-                // Wait for the expected number of exceptions to have been reported
-                await store.InstanceThresholdTask.WaitAsync(timeoutSource.Token);
-
-                validate(store);
+                await validateStore(store, timeoutSource.Token);
             }, expectCrash: expectCrash);
         }
 
@@ -706,22 +795,12 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
 
         private sealed class TestExceptionsStore : IExceptionsStore
         {
-            private readonly List<ExceptionInstance> _instances = new();
+            private readonly List<IExceptionsStoreCallback> _callback;
+            private readonly ExceptionInstanceCollection _instances = new();
 
-            private readonly int _instanceThreshold;
-            private readonly TaskCompletionSource _instanceThresholdSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            private readonly TaskCompletionSource<ulong> _unhandledExceptionIdSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            private int _instanceCount;
-
-            public Task InstanceThresholdTask => _instanceThresholdSource.Task;
-
-            public Task<ulong> UnhandledExceptionIdTask => _unhandledExceptionIdSource.Task;
-
-            public TestExceptionsStore(int instanceThreshold = 1)
+            public TestExceptionsStore(IEnumerable<IExceptionsStoreCallback> callbacks)
             {
-                _instanceThreshold = instanceThreshold;
+                _callback = callbacks.ToList();
             }
 
             public void AddExceptionInstance(IExceptionsNameCache cache, ulong exceptionId, ulong groupId, string message, DateTime timestamp, ulong[] stackFrameIds, int threadId, ulong[] innerExceptionIds, string activityId, ActivityIdFormat activityIdFormat)
@@ -729,27 +808,19 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
                 string moduleName = string.Empty;
                 StringBuilder typeBuilder = new();
                 CallStack callStack;
-                try
+
+                Assert.True(cache.TryGetExceptionGroup(groupId, out ulong exceptionClassId, out _, out _));
+
+                NameFormatter.BuildClassName(typeBuilder, cache.NameCache, exceptionClassId);
+
+                if (cache.NameCache.ClassData.TryGetValue(exceptionClassId, out ClassData exceptionClassData))
                 {
-                    Assert.True(cache.TryGetExceptionGroup(groupId, out ulong exceptionClassId, out _, out _));
-
-                    NameFormatter.BuildClassName(typeBuilder, cache.NameCache, exceptionClassId);
-
-                    if (cache.NameCache.ClassData.TryGetValue(exceptionClassId, out ClassData exceptionClassData))
-                    {
-                        moduleName = NameFormatter.GetModuleName(cache.NameCache, exceptionClassData.ModuleId);
-                    }
-
-                    callStack = ExceptionsStore.GenerateCallStack(stackFrameIds, cache, threadId);
-                }
-                catch (Exception ex)
-                {
-                    _instanceThresholdSource.TrySetException(ex);
-
-                    throw;
+                    moduleName = NameFormatter.GetModuleName(cache.NameCache, exceptionClassData.ModuleId);
                 }
 
-                _instances.Add(new ExceptionInstance(
+                callStack = ExceptionsStore.GenerateCallStack(stackFrameIds, cache, threadId);
+
+                ExceptionInstance instance = new(
                     exceptionId,
                     moduleName,
                     typeBuilder.ToString(),
@@ -758,22 +829,43 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
                     callStack,
                     innerExceptionIds,
                     activityId,
-                    activityIdFormat));
+                    activityIdFormat);
 
-                if (++_instanceCount >= _instanceThreshold)
+                foreach (IExceptionsStoreCallback callback in _callback)
                 {
-                    _instanceThresholdSource.TrySetResult();
+                    callback.BeforeAdd(instance);
+                }
+
+                _instances.Add(instance);
+
+                foreach (IExceptionsStoreCallback callback in _callback)
+                {
+                    callback.AfterAdd(instance);
                 }
             }
 
             public void RemoveExceptionInstance(ulong exceptionId)
             {
-                throw new NotSupportedException();
+                if (_instances.TryGetValue(exceptionId, out ExceptionInstance instance))
+                {
+                    _instances.Remove(exceptionId);
+
+                    foreach (IExceptionsStoreCallback callback in _callback)
+                    {
+                        callback.Unhandled(instance);
+                    }
+                }
             }
 
             public void UnhandledException(ulong exceptionId)
             {
-                _unhandledExceptionIdSource.SetResult(exceptionId);
+                if (_instances.TryGetValue(exceptionId, out ExceptionInstance instance))
+                {
+                    foreach (IExceptionsStoreCallback callback in _callback)
+                    {
+                        callback.Unhandled(instance);
+                    }
+                }
             }
 
             public IReadOnlyList<IExceptionInstance> GetSnapshot()
@@ -784,6 +876,15 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
             public sealed record class ExceptionInstance(ulong Id, string ModuleName, string TypeName, string Message, DateTime Timestamp, CallStack CallStack, ulong[] InnerExceptionIds, string ActivityId, ActivityIdFormat ActivityIdFormat)
                 : IExceptionInstance
             {
+            }
+
+            private sealed class ExceptionInstanceCollection :
+                KeyedCollection<ulong, ExceptionInstance>
+            {
+                protected override ulong GetKeyForItem(ExceptionInstance item)
+                {
+                    return item.Id;
+                }
             }
         }
     }
