@@ -154,10 +154,10 @@
 
   <!--
     Replicate the "IncludeDotNetCli" notion since we are specifying the SDK as an additoional package.
-    Replicated from https://github.com/dotnet/arcade/blob/main/src/Microsoft.DotNet.Helix/Sdk/tools/dotnet-cli/DotNetCli.targets
+    Adapted from https://github.com/dotnet/arcade/blob/main/src/Microsoft.DotNet.Helix/Sdk/tools/dotnet-cli/DotNetCli.targets
     -->
   <Target Name="AddDotNetSdkAsAdditionalPackage"
-          BeforeTargets="CoreTest">
+          BeforeTargets="AddAdditionalRuntimes">
     <!-- Correlation Payload: SDK (to use "dotnet test") -->
     <ItemGroup>
       <AdditionalDotNetPackage Include="$(MicrosoftDotnetSdkInternalVersion)">
