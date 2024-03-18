@@ -3,6 +3,7 @@
 
 using Microsoft.Diagnostics.Monitoring.Options;
 using Microsoft.Diagnostics.Monitoring.WebApi.Exceptions;
+using System;
 
 namespace Microsoft.Diagnostics.Monitoring.WebApi
 {
@@ -14,6 +15,6 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi
         /// <summary>
         /// Creates an operation that produces an exceptions artifact.
         /// </summary>
-        IArtifactOperation Create(ExceptionFormat format, ExceptionsConfigurationSettings configuration);
+        IArtifactOperation Create(ExceptionFormat format, ExceptionsConfigurationSettings configuration, TimeSpan? duration);
     }
 }
