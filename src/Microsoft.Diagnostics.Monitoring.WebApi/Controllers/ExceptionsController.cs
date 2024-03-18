@@ -12,6 +12,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -61,29 +62,7 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
             [FromQuery]
             string? tags = null)
         {
-            if (!_options.Value.GetEnabled())
-            {
-                return Task.FromResult<ActionResult>(this.FeatureNotEnabled(Strings.FeatureName_Exceptions));
-            }
-
-            ProcessKey? processKey = Utilities.GetProcessKey(pid, uid, name);
-
-            return InvokeForProcess(processInfo =>
-            {
-                ExceptionFormat format = ComputeFormat(Request.GetTypedHeaders().Accept) ?? ExceptionFormat.PlainText;
-
-                IArtifactOperation operation = processInfo.EndpointInfo.ServiceProvider
-                    .GetRequiredService<IExceptionsOperationFactory>()
-                    .Create(format, new ExceptionsConfigurationSettings());
-
-                return Result(
-                    Utilities.ArtifactType_Exceptions,
-                    egressProvider,
-                    operation,
-                    processInfo,
-                    tags,
-                    format != ExceptionFormat.PlainText);
-            }, processKey, Utilities.ArtifactType_Exceptions);
+            return GetExceptionsCore(pid, uid, name, egressProvider, tags, durationSeconds: null);
         }
 
         /// <summary>
@@ -113,6 +92,116 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
             [FromQuery]
             string? tags = null)
         {
+            return CaptureExceptionsCustomCore(configuration, pid, uid, name, egressProvider, tags, durationSeconds: null);
+        }
+
+        /// <summary>
+        /// Gets the exceptions from the target process.
+        /// </summary>
+        /// <param name="pid">Process ID used to identify the target process.</param>
+        /// <param name="uid">The Runtime instance cookie used to identify the target process.</param>
+        /// <param name="name">Process name used to identify the target process.</param>
+        /// <param name="egressProvider">The egress provider to which the exceptions are saved.</param>
+        /// <param name="tags">An optional set of comma-separated identifiers users can include to make an operation easier to identify.</param>
+        /// <param name="durationSeconds">The duration of the exceptions session (in seconds).</param>
+        [HttpGet("liveexceptions", Name = nameof(CaptureLiveExceptions))]
+        [ProducesWithProblemDetails(ContentTypes.ApplicationNdJson, ContentTypes.ApplicationJsonSequence, ContentTypes.TextPlain)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(void), StatusCodes.Status202Accepted)]
+        [EgressValidation]
+        public Task<ActionResult> CaptureLiveExceptions(
+            [FromQuery]
+            int? pid = null,
+            [FromQuery]
+            Guid? uid = null,
+            [FromQuery]
+            string name = null,
+            [FromQuery]
+            string egressProvider = null,
+            [FromQuery]
+            string tags = null,
+            [FromQuery][Range(-1, int.MaxValue)]
+            int? durationSeconds = 30)
+        {
+            return GetExceptionsCore(pid, uid, name, egressProvider, tags, durationSeconds);
+        }
+
+        /// <summary>
+        /// Gets the exceptions from the target process.
+        /// </summary>
+        /// <param name="pid">Process ID used to identify the target process.</param>
+        /// <param name="uid">The Runtime instance cookie used to identify the target process.</param>
+        /// <param name="name">Process name used to identify the target process.</param>
+        /// <param name="egressProvider">The egress provider to which the exceptions are saved.</param>
+        /// <param name="tags">An optional set of comma-separated identifiers users can include to make an operation easier to identify.</param>
+        /// <param name="configuration">The exceptions configuration describing which exceptions to include in the response.</param>
+        /// <param name="durationSeconds">The duration of the exceptions session (in seconds).</param>
+        [HttpPost("liveexceptions", Name = nameof(CaptureLiveExceptionsCustom))]
+        [ProducesWithProblemDetails(ContentTypes.ApplicationNdJson, ContentTypes.ApplicationJsonSequence, ContentTypes.TextPlain)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [EgressValidation]
+        public Task<ActionResult> CaptureLiveExceptionsCustom(
+            [FromBody]
+            ExceptionsConfiguration configuration,
+            [FromQuery]
+            int? pid = null,
+            [FromQuery]
+            Guid? uid = null,
+            [FromQuery]
+            string name = null,
+            [FromQuery]
+            string egressProvider = null,
+            [FromQuery]
+            string tags = null,
+            [FromQuery][Range(-1, int.MaxValue)]
+            int? durationSeconds = 30)
+        {
+            return CaptureExceptionsCustomCore(configuration, pid, uid, name, egressProvider, tags, durationSeconds);
+        }
+
+        private Task<ActionResult> GetExceptionsCore(
+            int? pid,
+            Guid? uid,
+            string name,
+            string egressProvider,
+            string tags,
+            int? durationSeconds)
+        {
+            if (!_options.Value.GetEnabled())
+            {
+                return Task.FromResult(this.FeatureNotEnabled(Strings.FeatureName_Exceptions));
+            }
+
+            ProcessKey? processKey = Utilities.GetProcessKey(pid, uid, name);
+
+            return InvokeForProcess(processInfo =>
+            {
+                ExceptionFormat format = ComputeFormat(Request.GetTypedHeaders().Accept) ?? ExceptionFormat.PlainText;
+                TimeSpan? duration = durationSeconds.HasValue ? Utilities.ConvertSecondsToTimeSpan(durationSeconds.Value) : null;
+
+                IArtifactOperation operation = processInfo.EndpointInfo.ServiceProvider
+                    .GetRequiredService<IExceptionsOperationFactory>()
+                    .Create(format, new ExceptionsConfigurationSettings(), duration);
+
+                return Result(
+                    Utilities.ArtifactType_Exceptions,
+                    egressProvider,
+                    operation,
+                    processInfo,
+                    tags,
+                    format != ExceptionFormat.PlainText);
+            }, processKey, Utilities.ArtifactType_Exceptions);
+        }
+
+        public Task<ActionResult> CaptureExceptionsCustomCore(
+            ExceptionsConfiguration configuration,
+            int? pid,
+            Guid? uid,
+            string name,
+            string egressProvider,
+            string tags,
+            int? durationSeconds)
+        {
             if (!_options.Value.GetEnabled())
             {
                 return Task.FromResult<ActionResult>(NotFound());
@@ -122,10 +211,11 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
             return InvokeForProcess(processInfo =>
             {
                 ExceptionFormat format = ComputeFormat(Request.GetTypedHeaders().Accept) ?? ExceptionFormat.PlainText;
+                TimeSpan? duration = durationSeconds.HasValue ? Utilities.ConvertSecondsToTimeSpan(durationSeconds.Value) : null;
 
                 IArtifactOperation operation = processInfo.EndpointInfo.ServiceProvider
                     .GetRequiredService<IExceptionsOperationFactory>()
-                    .Create(format, ExceptionsSettingsFactory.ConvertExceptionsConfiguration(configuration));
+                    .Create(format, ExceptionsSettingsFactory.ConvertExceptionsConfiguration(configuration), duration);
 
                 return Result(
                     Utilities.ArtifactType_Exceptions,

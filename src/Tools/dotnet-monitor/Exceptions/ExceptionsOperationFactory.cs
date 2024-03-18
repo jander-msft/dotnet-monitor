@@ -20,7 +20,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
             _store = store ?? throw new ArgumentNullException(nameof(store));
         }
 
-        public IArtifactOperation Create(ExceptionFormat format, ExceptionsConfigurationSettings configuration)
+        public IArtifactOperation Create(ExceptionFormat format, ExceptionsConfigurationSettings configuration, TimeSpan? duration)
         {
             return new ExceptionsOperation(_endpointInfo, _store, format, configuration);
         }

@@ -41,7 +41,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.CollectionRules.Actions
         {
             KeyValueLogScope scope = Utils.CreateArtifactScope(Utils.ArtifactType_Exceptions, EndpointInfo);
 
-            IArtifactOperation operation = _operationFactory.Create(Options.GetFormat(), Options.GetConfigurationSettings());
+            IArtifactOperation operation = _operationFactory.Create(Options.GetFormat(), Options.GetConfigurationSettings(), duration: null);
 
             EgressOperation egressOperation = new EgressOperation(
                 operation,
