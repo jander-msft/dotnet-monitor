@@ -115,11 +115,11 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
             [FromQuery]
             Guid? uid = null,
             [FromQuery]
-            string name = null,
+            string? name = null,
             [FromQuery]
-            string egressProvider = null,
+            string? egressProvider = null,
             [FromQuery]
-            string tags = null,
+            string? tags = null,
             [FromQuery][Range(-1, int.MaxValue)]
             int? durationSeconds = 30)
         {
@@ -148,11 +148,11 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
             [FromQuery]
             Guid? uid = null,
             [FromQuery]
-            string name = null,
+            string? name = null,
             [FromQuery]
-            string egressProvider = null,
+            string? egressProvider = null,
             [FromQuery]
-            string tags = null,
+            string? tags = null,
             [FromQuery][Range(-1, int.MaxValue)]
             int? durationSeconds = 30)
         {
@@ -162,9 +162,9 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
         private Task<ActionResult> GetExceptionsCore(
             int? pid,
             Guid? uid,
-            string name,
-            string egressProvider,
-            string tags,
+            string? name,
+            string? egressProvider,
+            string? tags,
             int? durationSeconds)
         {
             if (!_options.Value.GetEnabled())
@@ -197,9 +197,9 @@ namespace Microsoft.Diagnostics.Monitoring.WebApi.Controllers
             ExceptionsConfiguration configuration,
             int? pid,
             Guid? uid,
-            string name,
-            string egressProvider,
-            string tags,
+            string? name,
+            string? egressProvider,
+            string? tags,
             int? durationSeconds)
         {
             if (!_options.Value.GetEnabled())

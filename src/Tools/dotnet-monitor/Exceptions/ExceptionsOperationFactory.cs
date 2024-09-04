@@ -22,7 +22,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
 
         public IArtifactOperation Create(ExceptionFormat format, ExceptionsConfigurationSettings configuration, TimeSpan? duration)
         {
-            return new ExceptionsOperation(_endpointInfo, _store, format, configuration);
+            return new ExceptionsSnapshotOperation(_endpointInfo, format, configuration, _store);
         }
     }
 }

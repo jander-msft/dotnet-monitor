@@ -353,8 +353,9 @@ namespace Microsoft.Diagnostics.Tools.Monitor
         {
             services.AddTransient<IExceptionsOperationFactory, ExceptionsOperationFactory>();
             services.AddScoped<IExceptionsStore, ExceptionsStore>();
+            services.AddScoped<IExceptionsStoreCallbackFactory, ExceptionsStoreEventsCallbackFactory>();
             services.AddScoped<IExceptionsStoreCallbackFactory, ExceptionsStoreLimitsCallbackFactory>();
-            services.AddScoped<IDiagnosticLifetimeService, ExceptionsService>();
+            services.AddScoped<IDiagnosticLifetimeService, ExceptionsCollectionService>();
             return services;
         }
 

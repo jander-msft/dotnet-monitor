@@ -16,14 +16,14 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
     /// <summary>
     /// Get exception information from target process and store it.
     /// </summary>
-    internal sealed class ExceptionsService :
+    internal sealed class ExceptionsCollectionService :
         DiagnosticLifetimeBackgroundService
     {
         private readonly EventExceptionsPipeline _pipeline;
         private readonly IOptions<ExceptionsOptions> _options;
         private readonly StartupHookService _startupHookService;
 
-        public ExceptionsService(
+        public ExceptionsCollectionService(
             IEndpointInfo endpointInfo,
             IOptions<ExceptionsOptions> options,
             IExceptionsStore store,

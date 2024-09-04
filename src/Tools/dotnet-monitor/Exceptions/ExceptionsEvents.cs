@@ -7,7 +7,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.Exceptions.Eventing
 namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
 #endif
 {
-    internal static class ExceptionEvents
+    internal static class ExceptionsEvents
     {
         public const string SourceName = "Microsoft.Diagnostics.Monitoring.Exceptions";
 

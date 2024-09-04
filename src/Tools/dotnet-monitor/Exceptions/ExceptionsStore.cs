@@ -172,7 +172,7 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
                         entry.ActivityId,
                         entry.ActivityIdFormat);
 
-                    if (ExceptionsOperation.FilterException(_configuration, instance))
+                    if (ExceptionsSnapshotOperation.FilterException(_configuration, instance))
                     {
 
                         for (int i = 0; i < _callbacks.Count; i++)

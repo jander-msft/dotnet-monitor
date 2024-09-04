@@ -37,14 +37,14 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
         {
             return new EventPipeProviderSourceConfiguration(rundownKeyword: 0, bufferSizeInMB: 64, new[]
             {
-                new EventPipeProvider(ExceptionEvents.SourceName, EventLevel.Informational, (long)EventKeywords.All)
+                new EventPipeProvider(ExceptionsEvents.SourceName, EventLevel.Informational, (long)EventKeywords.All)
             });
         }
 
         protected override Task OnEventSourceAvailable(EventPipeEventSource eventSource, Func<Task> stopSessionAsync, CancellationToken token)
         {
             eventSource.Dynamic.AddCallbackForProviderEvent(
-                ExceptionEvents.SourceName,
+                ExceptionsEvents.SourceName,
                 null,
                 Callback);
 
@@ -68,28 +68,28 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
                     break;
                 case "ExceptionGroup":
                     _cache.AddExceptionGroup(
-                        traceEvent.GetPayload<ulong>(ExceptionEvents.ExceptionGroupPayloads.ExceptionGroupId),
-                        traceEvent.GetPayload<ulong>(ExceptionEvents.ExceptionGroupPayloads.ExceptionClassId),
-                        traceEvent.GetPayload<ulong>(ExceptionEvents.ExceptionGroupPayloads.ThrowingMethodId),
-                        traceEvent.GetPayload<int>(ExceptionEvents.ExceptionGroupPayloads.ILOffset)
+                        traceEvent.GetPayload<ulong>(ExceptionsEvents.ExceptionGroupPayloads.ExceptionGroupId),
+                        traceEvent.GetPayload<ulong>(ExceptionsEvents.ExceptionGroupPayloads.ExceptionClassId),
+                        traceEvent.GetPayload<ulong>(ExceptionsEvents.ExceptionGroupPayloads.ThrowingMethodId),
+                        traceEvent.GetPayload<int>(ExceptionsEvents.ExceptionGroupPayloads.ILOffset)
                         );
                     break;
                 case "ExceptionInstance":
                     _store.AddExceptionInstance(
                         _cache,
-                        traceEvent.GetPayload<ulong>(ExceptionEvents.ExceptionInstancePayloads.ExceptionId),
-                        traceEvent.GetPayload<ulong>(ExceptionEvents.ExceptionInstancePayloads.ExceptionGroupId),
-                        traceEvent.GetPayload<string>(ExceptionEvents.ExceptionInstancePayloads.ExceptionMessage),
-                        traceEvent.GetPayload<DateTime>(ExceptionEvents.ExceptionInstancePayloads.Timestamp).ToUniversalTime(),
-                        traceEvent.GetPayload<ulong[]>(ExceptionEvents.ExceptionInstancePayloads.StackFrameIds),
+                        traceEvent.GetPayload<ulong>(ExceptionsEvents.ExceptionInstancePayloads.ExceptionId),
+                        traceEvent.GetPayload<ulong>(ExceptionsEvents.ExceptionInstancePayloads.ExceptionGroupId),
+                        traceEvent.GetPayload<string>(ExceptionsEvents.ExceptionInstancePayloads.ExceptionMessage),
+                        traceEvent.GetPayload<DateTime>(ExceptionsEvents.ExceptionInstancePayloads.Timestamp).ToUniversalTime(),
+                        traceEvent.GetPayload<ulong[]>(ExceptionsEvents.ExceptionInstancePayloads.StackFrameIds),
                         traceEvent.ThreadID,
-                        traceEvent.GetPayload<ulong[]>(ExceptionEvents.ExceptionInstancePayloads.InnerExceptionIds),
-                        traceEvent.GetPayload<string>(ExceptionEvents.ExceptionInstancePayloads.ActivityId),
-                        traceEvent.GetPayload<ActivityIdFormat>(ExceptionEvents.ExceptionInstancePayloads.ActivityIdFormat));
+                        traceEvent.GetPayload<ulong[]>(ExceptionsEvents.ExceptionInstancePayloads.InnerExceptionIds),
+                        traceEvent.GetPayload<string>(ExceptionsEvents.ExceptionInstancePayloads.ActivityId),
+                        traceEvent.GetPayload<ActivityIdFormat>(ExceptionsEvents.ExceptionInstancePayloads.ActivityIdFormat));
                     break;
                 case "ExceptionInstanceUnhandled":
                     // TODO: Advertise unhandled exception as necessary
-                    ulong exceptionId = traceEvent.GetPayload<ulong>(ExceptionEvents.ExceptionInstanceUnhandledPayloads.ExceptionId);
+                    ulong exceptionId = traceEvent.GetPayload<ulong>(ExceptionsEvents.ExceptionInstanceUnhandledPayloads.ExceptionId);
                     break;
                 case "FunctionDescription":
                     _cache.AddFunction(
@@ -112,9 +112,9 @@ namespace Microsoft.Diagnostics.Tools.Monitor.Exceptions
                     break;
                 case "StackFrameDescription":
                     _cache.AddStackFrame(
-                        traceEvent.GetPayload<ulong>(ExceptionEvents.StackFrameIdentifierPayloads.StackFrameId),
-                        traceEvent.GetPayload<ulong>(ExceptionEvents.StackFrameIdentifierPayloads.FunctionId),
-                        traceEvent.GetPayload<int>(ExceptionEvents.StackFrameIdentifierPayloads.ILOffset)
+                        traceEvent.GetPayload<ulong>(ExceptionsEvents.StackFrameIdentifierPayloads.StackFrameId),
+                        traceEvent.GetPayload<ulong>(ExceptionsEvents.StackFrameIdentifierPayloads.FunctionId),
+                        traceEvent.GetPayload<int>(ExceptionsEvents.StackFrameIdentifierPayloads.ILOffset)
                         );
                     break;
                 case "TokenDescription":
