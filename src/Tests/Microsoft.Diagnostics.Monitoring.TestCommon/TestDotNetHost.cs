@@ -73,21 +73,21 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon
             return Path.GetFullPath(Path.Combine(dotnetDirPath, ExeName));
         }
 
-        public static TargetFrameworkMoniker BuiltTargetFrameworkMoniker
+        public static TargetFramework BuiltTargetFramework
         {
             get
             {
                 // Update with specific TFM when building this assembly for a new target framework.
 #if NETCOREAPP3_1
-                return TargetFrameworkMoniker.NetCoreApp31;
+                return TargetFramework.NetCoreApp31;
 #elif NET5_0
-                return TargetFrameworkMoniker.Net50;
+                return TargetFramework.Net50;
 #elif NET6_0
-                return TargetFrameworkMoniker.Net60;
+                return TargetFramework.Net60;
 #elif NET7_0
-                return TargetFrameworkMoniker.Net70;
+                return TargetFramework.Net70;
 #elif NET8_0
-                return TargetFrameworkMoniker.Net80;
+                return TargetFramework.Net80;
 #endif
             }
         }

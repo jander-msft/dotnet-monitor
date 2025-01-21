@@ -13,7 +13,7 @@ using Xunit;
 
 namespace Microsoft.Diagnostics.Monitoring.StartupHook.UnitTests.ParameterCapturing.Boxing
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TestCommon.TargetFrameworks.CurrentAssembly)]
     public class MethodDefinitionExtensionsTests
     {
         [Theory]

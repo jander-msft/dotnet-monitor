@@ -20,7 +20,7 @@ using Xunit.Abstractions;
 
 namespace CollectionRuleActions.UnitTests
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TargetFrameworks.CurrentAssembly)]
     [Collection(TestCollections.CollectionRuleActions)]
     public class CollectLiveMetricsActionTests
     {
@@ -38,14 +38,14 @@ namespace CollectionRuleActions.UnitTests
 
         [Theory]
         [MemberData(nameof(ActionTestsHelper.GetTfms), MemberType = typeof(ActionTestsHelper))]
-        public Task CollectLiveMetricsAction_CustomProviders(TargetFrameworkMoniker tfm) =>
+        public Task CollectLiveMetricsAction_CustomProviders(TargetFramework tfm) =>
             CollectLiveMetricsAction_CustomProvidersCore(tfm);
 
         [Fact]
         public Task CollectLiveMetricsAction_CustomArtifactName() =>
-            CollectLiveMetricsAction_CustomProvidersCore(TargetFrameworkMoniker.Current, artifactName: Guid.NewGuid().ToString("n"));
+            CollectLiveMetricsAction_CustomProvidersCore(TargetFramework.Current, artifactName: Guid.NewGuid().ToString("n"));
 
-        private async Task CollectLiveMetricsAction_CustomProvidersCore(TargetFrameworkMoniker tfm, string artifactName = null)
+        private async Task CollectLiveMetricsAction_CustomProvidersCore(TargetFramework tfm, string artifactName = null)
         {
             using TemporaryDirectory tempDirectory = new(_outputHelper);
 
@@ -116,7 +116,7 @@ namespace CollectionRuleActions.UnitTests
 
         [Theory(Skip = "Flaky")]
         [MemberData(nameof(ActionTestsHelper.GetTfms), MemberType = typeof(ActionTestsHelper))]
-        public async Task CollectLiveMetricsAction_CustomMeters(TargetFrameworkMoniker tfm)
+        public async Task CollectLiveMetricsAction_CustomMeters(TargetFramework tfm)
         {
             using TemporaryDirectory tempDirectory = new(_outputHelper);
 

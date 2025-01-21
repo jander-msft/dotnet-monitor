@@ -17,7 +17,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TestCommon.TargetFrameworks.CurrentAssembly)]
     public class EndpointInfoSourceTests
     {
         private readonly ITestOutputHelper _outputHelper;
@@ -47,7 +47,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         /// </summary>
         [Theory]
         [MemberData(nameof(ActionTestsHelper.GetTfms), MemberType = typeof(ActionTestsHelper))]
-        public async Task ServerSourceAddRemoveSingleConnectionTest(TargetFrameworkMoniker appTfm)
+        public async Task ServerSourceAddRemoveSingleConnectionTest(TargetFramework appTfm)
         {
             EndpointInfoSourceCallback callback = new(_outputHelper);
             await using ServerSourceHolder sourceHolder = await _endpointUtilities.StartServerAsync(callback);
@@ -92,7 +92,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         /// </summary>
         [Theory]
         [MemberData(nameof(ActionTestsHelper.GetTfms), MemberType = typeof(ActionTestsHelper))]
-        public async Task ServerSourceAddRemoveMultipleConnectionTest(TargetFrameworkMoniker appTfm)
+        public async Task ServerSourceAddRemoveMultipleConnectionTest(TargetFramework appTfm)
         {
             EndpointInfoSourceCallback callback = new(_outputHelper);
             await using ServerSourceHolder sourceHolder = await _endpointUtilities.StartServerAsync(callback);
@@ -161,7 +161,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         /// </summary>
         [Theory]
         [MemberData(nameof(ActionTestsHelper.GetTfms), MemberType = typeof(ActionTestsHelper))]
-        public async Task ServerSourceNoPruneDuringDumpTest(TargetFrameworkMoniker appTfm)
+        public async Task ServerSourceNoPruneDuringDumpTest(TargetFramework appTfm)
         {
             EndpointInfoSourceCallback callback = new(_outputHelper);
             var operationTrackerService = new OperationTrackerService();

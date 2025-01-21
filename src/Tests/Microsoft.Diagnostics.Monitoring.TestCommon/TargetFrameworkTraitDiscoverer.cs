@@ -8,12 +8,12 @@ using Xunit.Sdk;
 
 namespace Microsoft.Diagnostics.Monitoring.TestCommon
 {
-    internal class TargetFrameworkMonikerTraitDiscoverer : ITraitDiscoverer
+    internal class TargetFrameworkTraitDiscoverer : ITraitDiscoverer
     {
         public IEnumerable<KeyValuePair<string, string>> GetTraits(IAttributeInfo traitAttribute)
         {
-            TargetFrameworkMoniker tfm = traitAttribute.GetConstructorArguments().OfType<TargetFrameworkMoniker>().Single();
-            yield return new KeyValuePair<string, string>("TargetFrameworkMoniker", tfm.ToString());
+            TargetFramework tfm = traitAttribute.GetConstructorArguments().OfType<TargetFramework>().Single();
+            yield return new KeyValuePair<string, string>("TargetFramework", tfm.ToString());
         }
     }
 }

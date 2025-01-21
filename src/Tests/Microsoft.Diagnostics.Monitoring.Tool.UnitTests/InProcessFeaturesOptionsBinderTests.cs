@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TestCommon.TargetFrameworks.CurrentAssembly)]
     public sealed class InProcessFeaturesOptionsBinderTests
     {
         private const string FeatureConfigurationKey = "InProcessFeatures:TestFeature";

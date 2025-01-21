@@ -22,7 +22,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TestCommon.TargetFrameworks.CurrentAssembly)]
     public sealed class ActionDependencyAnalyzerTests
     {
         private static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(30);

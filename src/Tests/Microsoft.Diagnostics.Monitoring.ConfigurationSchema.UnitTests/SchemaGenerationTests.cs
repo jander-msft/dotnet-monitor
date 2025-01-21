@@ -15,7 +15,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Diagnostics.Monitoring.ConfigurationSchema.UnitTests
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TestCommon.TargetFrameworks.CurrentAssembly)]
     public class SchemaGenerationTests
     {
         private readonly ITestOutputHelper _outputHelper;
@@ -35,7 +35,7 @@ namespace Microsoft.Diagnostics.Monitoring.ConfigurationSchema.UnitTests
             AssemblyHelper.GetAssemblyArtifactBinPath(
                 Assembly.GetExecutingAssembly(),
                 SchemaGeneratorName,
-                TargetFrameworkMoniker.Net80);
+                TargetFramework.Net80);
 
         public SchemaGenerationTests(ITestOutputHelper outputHelper)
         {

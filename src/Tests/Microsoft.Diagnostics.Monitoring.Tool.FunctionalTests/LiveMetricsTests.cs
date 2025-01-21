@@ -22,7 +22,7 @@ using Constants = Microsoft.Diagnostics.Monitoring.TestCommon.LiveMetricsTestCon
 
 namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TestCommon.TargetFrameworks.CurrentAssembly)]
     [Collection(DefaultCollectionFixture.Name)]
     public class LiveMetricsTests
     {

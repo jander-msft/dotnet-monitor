@@ -17,7 +17,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TestCommon.TargetFrameworks.CurrentAssembly)]
     [Collection(DefaultCollectionFixture.Name)]
     public class InfoTests
     {
@@ -51,7 +51,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
                     Assert.NotNull(info.Version); // Not sure of how to get Dotnet Monitor version from within tests...
                     Assert.True(Version.TryParse(info.RuntimeVersion, out Version runtimeVersion), "Unable to parse version from RuntimeVersion property.");
 
-                    Version currentAspNetVersion = TargetFrameworkMoniker.Net80.GetAspNetCoreFrameworkVersion();
+                    Version currentAspNetVersion = TargetFramework.Net80.GetAspNetCoreFrameworkVersion();
                     Assert.Equal(currentAspNetVersion.Major, runtimeVersion.Major);
                     Assert.Equal(currentAspNetVersion.Minor, runtimeVersion.Minor);
                     Assert.Equal(currentAspNetVersion.Revision, runtimeVersion.Revision);

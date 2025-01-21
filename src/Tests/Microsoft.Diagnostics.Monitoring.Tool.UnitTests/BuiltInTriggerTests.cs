@@ -11,7 +11,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TestCommon.TargetFrameworks.CurrentAssembly)]
     public sealed class BuiltInTriggerTests
     {
         private readonly TimeSpan CustomSlidingWindowDuration = TimeSpan.Parse("00:00:03");

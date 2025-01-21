@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Microsoft.Diagnostics.Monitoring.StartupHook.Exceptions.Pipeline
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TestCommon.TargetFrameworks.CurrentAssembly)]
     public sealed class ExceptionPipelineTests
     {
         private static readonly Action<ExceptionPipelineBuilder> EmptyConfigure = _ => { };

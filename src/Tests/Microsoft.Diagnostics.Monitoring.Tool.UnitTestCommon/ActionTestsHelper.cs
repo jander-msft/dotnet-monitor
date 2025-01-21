@@ -20,23 +20,23 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon
 {
     internal static class ActionTestsHelper
     {
-        private static TargetFrameworkMoniker[] tfmsToTest =
+        private static TargetFramework[] tfmsToTest =
         [
-            TargetFrameworkMoniker.Net60,
-            TargetFrameworkMoniker.Net70,
-            TargetFrameworkMoniker.Net80
+            TargetFramework.Net60,
+            TargetFramework.Net70,
+            TargetFramework.Net80
         ];
 
-        private static TargetFrameworkMoniker[] tfms6PlusToTest =
+        private static TargetFramework[] tfms6PlusToTest =
         [
-            TargetFrameworkMoniker.Net60,
-            TargetFrameworkMoniker.Net70,
-            TargetFrameworkMoniker.Net80
+            TargetFramework.Net60,
+            TargetFramework.Net70,
+            TargetFramework.Net80
         ];
 
         public static IEnumerable<object[]> GetTfms()
         {
-            foreach (TargetFrameworkMoniker tfm in tfmsToTest)
+            foreach (TargetFramework tfm in tfmsToTest)
             {
                 yield return new object[] { tfm };
             }
@@ -44,7 +44,7 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon
 
         public static IEnumerable<object[]> Get6PlusTfms()
         {
-            foreach (TargetFrameworkMoniker tfm in tfms6PlusToTest)
+            foreach (TargetFramework tfm in tfms6PlusToTest)
             {
                 yield return new object[] { tfm };
             }
@@ -52,7 +52,7 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon
 
         public static IEnumerable<object[]> GetTfmsAndTraceProfiles()
         {
-            foreach (TargetFrameworkMoniker tfm in tfmsToTest)
+            foreach (TargetFramework tfm in tfmsToTest)
             {
                 yield return new object[] { tfm, TraceProfile.Logs };
                 yield return new object[] { tfm, TraceProfile.Metrics };
@@ -64,16 +64,16 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon
 
         public static IEnumerable<object[]> GetTfmsAndDumpTypes()
         {
-            foreach (TargetFrameworkMoniker tfm in tfmsToTest)
+            foreach (TargetFramework tfm in tfmsToTest)
             {
                 yield return new object[] { tfm, DumpType.Full };
                 // Capturing non-full dumps via diagnostic command works inconsistently
                 // on Alpine for .NET 5 and lower (the dump command will return successfully, but)
                 // the dump file will not exist). Only test other dump types on .NET 6+
                 if (!DistroInformation.IsAlpineLinux
-                    || tfm == TargetFrameworkMoniker.Net60
-                    || tfm == TargetFrameworkMoniker.Net70
-                    || tfm == TargetFrameworkMoniker.Net80)
+                    || tfm == TargetFramework.Net60
+                    || tfm == TargetFramework.Net70
+                    || tfm == TargetFramework.Net80)
                 {
                     yield return new object[] { tfm, DumpType.WithHeap };
                     yield return new object[] { tfm, DumpType.Triage };
@@ -84,7 +84,7 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon
 
         public static IEnumerable<object[]> GetTfmsAndLogFormat()
         {
-            foreach (TargetFrameworkMoniker tfm in tfmsToTest)
+            foreach (TargetFramework tfm in tfmsToTest)
             {
                 yield return new object[] { tfm, LogFormat.NewlineDelimitedJson };
                 yield return new object[] { tfm, LogFormat.JsonSequence };
@@ -108,7 +108,7 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon
                 string profilerPath = ProfilerHelper.GetPath(architecture);
                 if (File.Exists(profilerPath))
                 {
-                    foreach (TargetFrameworkMoniker tfm in ActionTestsHelper.tfms6PlusToTest)
+                    foreach (TargetFramework tfm in ActionTestsHelper.tfms6PlusToTest)
                     {
                         arguments.Add(new object[] { tfm, architecture, profilerPath });
                     }

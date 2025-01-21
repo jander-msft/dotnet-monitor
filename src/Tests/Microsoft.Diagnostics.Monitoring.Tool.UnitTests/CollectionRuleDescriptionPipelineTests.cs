@@ -18,7 +18,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TestCommon.TargetFrameworks.CurrentAssembly)]
     public class CollectionRuleDescriptionPipelineTests
     {
         private readonly TimeSpan DefaultPipelineTimeout = TimeSpan.FromSeconds(30);
@@ -37,7 +37,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         /// </summary>
         [Theory]
         [MemberData(nameof(CollectionRulePipelineTests.GetTfmsSupportingPortListener), MemberType = typeof(CollectionRulePipelineTests))]
-        public Task CollectionRuleDescriptionPipeline_StartupTriggerTest(TargetFrameworkMoniker appTfm)
+        public Task CollectionRuleDescriptionPipeline_StartupTriggerTest(TargetFramework appTfm)
         {
             CallbackActionService callbackService = new(_outputHelper);
 
@@ -98,7 +98,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         /// </summary>
         [Theory(Skip = "https://github.com/dotnet/dotnet-monitor/issues/2241")]
         [MemberData(nameof(CollectionRulePipelineTests.GetTfmsSupportingPortListener), MemberType = typeof(CollectionRulePipelineTests))]
-        public Task CollectionRuleDescriptionPipeline_ExecutingAction(TargetFrameworkMoniker appTfm)
+        public Task CollectionRuleDescriptionPipeline_ExecutingAction(TargetFramework appTfm)
         {
             TimeSpan ClockIncrementDuration = TimeSpan.FromMilliseconds(10);
 
@@ -190,7 +190,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         /// </summary>
         [Theory]
         [MemberData(nameof(CollectionRulePipelineTests.GetTfmsSupportingPortListener), MemberType = typeof(CollectionRulePipelineTests))]
-        public Task CollectionRuleDescriptionPipeline_Throttled(TargetFrameworkMoniker appTfm)
+        public Task CollectionRuleDescriptionPipeline_Throttled(TargetFramework appTfm)
         {
             const int IterationCount = 5;
             TimeSpan SlidingWindowDuration = TimeSpan.FromSeconds(2); // NOTE: A value greater than 1 second is necessary since the countdown trims precision to the nearest second (for user-readability)
@@ -298,7 +298,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         /// </summary>
         [Theory]
         [MemberData(nameof(CollectionRulePipelineTests.GetTfmsSupportingPortListener), MemberType = typeof(CollectionRulePipelineTests))]
-        public Task CollectionRuleDescriptionPipeline_ReachedRuleDuration(TargetFrameworkMoniker appTfm)
+        public Task CollectionRuleDescriptionPipeline_ReachedRuleDuration(TargetFramework appTfm)
         {
             ManualTriggerService triggerService = new();
             CallbackActionService callbackService = new(_outputHelper);
@@ -345,7 +345,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         /// </summary>
         [Theory]
         [MemberData(nameof(CollectionRulePipelineTests.GetTfmsSupportingPortListener), MemberType = typeof(CollectionRulePipelineTests))]
-        public Task CollectionRuleDescriptionPipeline_ActionCountLimitUnlimitedDurationTest(TargetFrameworkMoniker appTfm)
+        public Task CollectionRuleDescriptionPipeline_ActionCountLimitUnlimitedDurationTest(TargetFramework appTfm)
         {
             TimeSpan ClockIncrementDuration = TimeSpan.FromMilliseconds(10);
 

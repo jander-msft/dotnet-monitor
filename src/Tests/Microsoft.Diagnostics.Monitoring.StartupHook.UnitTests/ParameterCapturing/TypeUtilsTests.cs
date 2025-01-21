@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Microsoft.Diagnostics.Monitoring.StartupHook.UnitTests.ParameterCapturing
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TestCommon.TargetFrameworks.CurrentAssembly)]
     public class TypeUtilsTests
     {
         [Theory]

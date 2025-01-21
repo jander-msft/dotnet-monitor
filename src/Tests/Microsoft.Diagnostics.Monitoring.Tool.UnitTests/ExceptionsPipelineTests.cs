@@ -22,7 +22,7 @@ using CallStack = Microsoft.Diagnostics.Monitoring.WebApi.Models.CallStack;
 
 namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TestCommon.TargetFrameworks.CurrentAssembly)]
     public sealed class ExceptionsPipelineTests
     {
         private ITestOutputHelper _outputHelper;
@@ -32,7 +32,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         private static string StartupHookPath => AssemblyHelper.GetAssemblyArtifactBinPath(
             Assembly.GetExecutingAssembly(),
             "Microsoft.Diagnostics.Monitoring.StartupHook",
-            TargetFrameworkMoniker.Net60);
+            TargetFramework.Net60);
 
         private static readonly ExceptionFilterSettings SimpleInvalidOperationException = new()
         {
@@ -668,7 +668,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
             await using AppRunner runner = _endpointUtilities.CreateAppRunner(
                 Assembly.GetExecutingAssembly(),
                 sourceHolder.TransportName,
-                TargetFrameworkMoniker.Current);
+                TargetFramework.Current);
             runner.Architecture = architecture;
             runner.ScenarioName = TestAppScenarios.Exceptions.Name + " " + subScenarioName;
 

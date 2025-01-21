@@ -31,7 +31,7 @@ using DisposableHelper = Microsoft.Diagnostics.Monitoring.TestCommon.DisposableH
 
 namespace CollectionRuleActions.UnitTests
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TargetFrameworks.CurrentAssembly)]
     [Collection(TestCollections.CollectionRuleActions)]
     public class CollectLogsActionTests
     {
@@ -50,10 +50,10 @@ namespace CollectionRuleActions.UnitTests
         /// Test that log events with a LogsTestUtilities.Category that doesn't have a specified level are collected
         /// at the log level specified in the request body.
         /// </summary>
-        /// 
+        ///
         [Theory(Skip = "https://github.com/dotnet/dotnet-monitor/issues/4741")]
         [MemberData(nameof(ActionTestsHelper.GetTfmsAndLogFormat), MemberType = typeof(ActionTestsHelper))]
-        public Task LogsDefaultLevelFallbackActionTest(TargetFrameworkMoniker tfm, LogFormat logFormat)
+        public Task LogsDefaultLevelFallbackActionTest(TargetFramework tfm, LogFormat logFormat)
         {
             return ValidateLogsActionAsync(
                 new LogsConfiguration()
@@ -89,7 +89,7 @@ namespace CollectionRuleActions.UnitTests
         /// </summary>
         [Theory(Skip = "https://github.com/dotnet/dotnet-monitor/issues/4741")]
         [MemberData(nameof(ActionTestsHelper.GetTfmsAndLogFormat), MemberType = typeof(ActionTestsHelper))]
-        public Task LogsUseAppFiltersViaBodyActionTest(TargetFrameworkMoniker tfm, LogFormat logFormat)
+        public Task LogsUseAppFiltersViaBodyActionTest(TargetFramework tfm, LogFormat logFormat)
         {
             return ValidateLogsActionAsync(
                 new LogsConfiguration()
@@ -123,7 +123,7 @@ namespace CollectionRuleActions.UnitTests
         /// </summary>
         [Theory(Skip = "https://github.com/dotnet/dotnet-monitor/issues/4741")]
         [MemberData(nameof(ActionTestsHelper.GetTfmsAndLogFormat), MemberType = typeof(ActionTestsHelper))]
-        public Task LogsUseAppFiltersAndFilterSpecsActionTest(TargetFrameworkMoniker tfm, LogFormat logFormat)
+        public Task LogsUseAppFiltersAndFilterSpecsActionTest(TargetFramework tfm, LogFormat logFormat)
         {
             return ValidateLogsActionAsync(
                 new LogsConfiguration()
@@ -162,7 +162,7 @@ namespace CollectionRuleActions.UnitTests
         /// </summary>
         [Theory(Skip = "https://github.com/dotnet/dotnet-monitor/issues/4741")]
         [MemberData(nameof(ActionTestsHelper.GetTfmsAndLogFormat), MemberType = typeof(ActionTestsHelper))]
-        public Task LogsWildcardActionTest(TargetFrameworkMoniker tfm, LogFormat logFormat)
+        public Task LogsWildcardActionTest(TargetFramework tfm, LogFormat logFormat)
         {
             return ValidateLogsActionAsync(
                 new LogsConfiguration()
@@ -202,7 +202,7 @@ namespace CollectionRuleActions.UnitTests
             LogsConfiguration configuration,
             Func<ChannelReader<LogEntry>, Task> callback,
             LogFormat logFormat,
-            TargetFrameworkMoniker tfm)
+            TargetFramework tfm)
         {
             using TemporaryDirectory tempDirectory = new(_outputHelper);
 

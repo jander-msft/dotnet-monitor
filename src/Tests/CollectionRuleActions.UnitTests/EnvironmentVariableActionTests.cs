@@ -19,7 +19,7 @@ using Xunit.Abstractions;
 
 namespace CollectionRuleActions.UnitTests
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TargetFrameworks.CurrentAssembly)]
     [Collection(TestCollections.CollectionRuleActions)]
     public class EnvironmentVariableActionTests
     {
@@ -43,7 +43,7 @@ namespace CollectionRuleActions.UnitTests
         /// </remarks>
         [Theory]
         [MemberData(nameof(ActionTestsHelper.Get6PlusTfms), MemberType = typeof(ActionTestsHelper))]
-        public async Task TestSetEnvVar(TargetFrameworkMoniker tfm)
+        public async Task TestSetEnvVar(TargetFramework tfm)
         {
             await TestHostHelper.CreateCollectionRulesHost(
                 outputHelper: _outputHelper,
@@ -90,7 +90,7 @@ namespace CollectionRuleActions.UnitTests
         /// </remarks>
         [Theory]
         [MemberData(nameof(ActionTestsHelper.Get6PlusTfms), MemberType = typeof(ActionTestsHelper))]
-        public async Task TestGetEnvVar(TargetFrameworkMoniker tfm)
+        public async Task TestGetEnvVar(TargetFramework tfm)
         {
             const string VariableDoesNotExist = "SomeEnvVarThatIsNotSet";
             await TestHostHelper.CreateCollectionRulesHost(
@@ -149,7 +149,7 @@ namespace CollectionRuleActions.UnitTests
         }
 
         /// <summary>
-        /// Test that the <see cref="SetEnvironmentVariableActionFactory.SetEnvironmentVariableAction"/> to 
+        /// Test that the <see cref="SetEnvironmentVariableActionFactory.SetEnvironmentVariableAction"/> to
         /// <see cref="GetEnvironmentVariableActionFactory.GetEnvironmentVariableAction"/> round trip works correctly.
         /// </summary>
         /// <remarks>
@@ -157,7 +157,7 @@ namespace CollectionRuleActions.UnitTests
         /// </remarks>
         [Theory]
         [MemberData(nameof(ActionTestsHelper.Get6PlusTfms), MemberType = typeof(ActionTestsHelper))]
-        public async Task TestEnvVarRoundTrip(TargetFrameworkMoniker tfm)
+        public async Task TestEnvVarRoundTrip(TargetFramework tfm)
         {
             await TestHostHelper.CreateCollectionRulesHost(
                 outputHelper: _outputHelper,

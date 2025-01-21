@@ -18,7 +18,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Diagnostics.Monitoring.OpenApiGen.UnitTests
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TestCommon.TargetFrameworks.CurrentAssembly)]
     public class OpenApiGeneratorTests
     {
         private static readonly TimeSpan GenerationTimeout = TimeSpan.FromSeconds(30);
@@ -33,7 +33,7 @@ namespace Microsoft.Diagnostics.Monitoring.OpenApiGen.UnitTests
             Path.Combine(Path.GetDirectoryName(CurrentExecutingAssemblyPath), OpenApiBaselineName);
 
         private static readonly string OpenApiGenPath =
-            AssemblyHelper.GetAssemblyArtifactBinPath(Assembly.GetExecutingAssembly(), OpenApiGenName, TargetFrameworkMoniker.Net80);
+            AssemblyHelper.GetAssemblyArtifactBinPath(Assembly.GetExecutingAssembly(), OpenApiGenName, TargetFramework.Net80);
 
         private readonly ITestOutputHelper _outputHelper;
 

@@ -114,7 +114,7 @@ namespace Microsoft.Diagnostics.Monitoring.StartupHook.UnitTests.ParameterCaptur
     }
 
 
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TestCommon.TargetFrameworks.CurrentAssembly)]
     public class ParameterCapturingPipelineTests
     {
         private readonly ITestOutputHelper _outputHelper;

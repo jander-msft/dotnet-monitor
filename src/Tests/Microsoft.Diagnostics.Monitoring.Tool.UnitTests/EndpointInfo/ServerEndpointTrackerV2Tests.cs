@@ -14,7 +14,7 @@ using Xunit;
 
 namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests.EndpointInfo
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TestCommon.TargetFrameworks.CurrentAssembly)]
     public sealed class ServerEndpointTrackerV2Tests
     {
         private readonly MockTimeProvider _timeProvider = new();

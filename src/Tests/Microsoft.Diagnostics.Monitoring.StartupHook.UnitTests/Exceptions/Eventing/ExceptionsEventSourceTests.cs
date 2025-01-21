@@ -11,7 +11,7 @@ using Xunit;
 
 namespace Microsoft.Diagnostics.Monitoring.StartupHook.Exceptions.Eventing
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMoniker.Current)]
+    [TargetFrameworkTrait(TargetFrameworks.CurrentAssembly)]
     public sealed class ExceptionsEventSourceTests
     {
         private const string InvalidOperationExceptionMessage = "Operation is not valid due to the current state of the object.";

@@ -16,7 +16,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TestCommon.TargetFrameworks.CurrentAssembly)]
     public class CollectionRulePipelineTests
     {
         private readonly TimeSpan DefaultPipelineTimeout = TimeSpan.FromSeconds(30);
@@ -34,7 +34,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         /// </summary>
         [Theory]
         [MemberData(nameof(GetTfmsSupportingPortListener))]
-        public Task CollectionRulePipeline_StartupTriggerTest(TargetFrameworkMoniker appTfm)
+        public Task CollectionRulePipeline_StartupTriggerTest(TargetFramework appTfm)
         {
             CallbackActionService callbackService = new(_outputHelper);
 
@@ -102,7 +102,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         /// </summary>
         [Theory(Skip = "Nondeterministic")]
         [MemberData(nameof(GetTfmsSupportingPortListener))]
-        public Task CollectionRulePipeline_EventCounterTriggerTest(TargetFrameworkMoniker appTfm)
+        public Task CollectionRulePipeline_EventCounterTriggerTest(TargetFramework appTfm)
         {
             CallbackActionService callbackService = new(_outputHelper);
 
@@ -165,7 +165,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         /// </summary>
         [Theory]
         [MemberData(nameof(GetCurrentTfm))]
-        public Task CollectionRulePipeline_EventMeterTriggerTest_Gauge(TargetFrameworkMoniker appTfm)
+        public Task CollectionRulePipeline_EventMeterTriggerTest_Gauge(TargetFramework appTfm)
         {
             CallbackActionService callbackService = new(_outputHelper);
 
@@ -231,7 +231,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         /// </summary>
         [Theory(Skip = "https://github.com/dotnet/dotnet-monitor/issues/6154")]
         [MemberData(nameof(GetCurrentTfm))]
-        public Task CollectionRulePipeline_EventMeterTriggerTest_Histogram_GreaterThan(TargetFrameworkMoniker appTfm)
+        public Task CollectionRulePipeline_EventMeterTriggerTest_Histogram_GreaterThan(TargetFramework appTfm)
         {
             CallbackActionService callbackService = new(_outputHelper);
 
@@ -298,7 +298,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         /// </summary>
         [Theory(Skip = "https://github.com/dotnet/dotnet-monitor/issues/4184")]
         [MemberData(nameof(GetCurrentTfm))]
-        public Task CollectionRulePipeline_EventMeterTriggerTest_Histogram_LessThan(TargetFrameworkMoniker appTfm)
+        public Task CollectionRulePipeline_EventMeterTriggerTest_Histogram_LessThan(TargetFramework appTfm)
         {
             CallbackActionService callbackService = new(_outputHelper);
 
@@ -365,7 +365,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         /// </summary>
         [Theory]
         [MemberData(nameof(GetTfmsSupportingPortListener))]
-        public Task CollectionRulePipeline_DurationLimitTest(TargetFrameworkMoniker appTfm)
+        public Task CollectionRulePipeline_DurationLimitTest(TargetFramework appTfm)
         {
             ManualTriggerService triggerService = new();
             CallbackActionService callbackService = new(_outputHelper);
@@ -406,7 +406,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         /// </summary>
         [Theory]
         [MemberData(nameof(GetTfmsSupportingPortListener))]
-        public Task CollectionRulePipeline_ActionCountLimitUnlimitedDurationTest(TargetFrameworkMoniker appTfm)
+        public Task CollectionRulePipeline_ActionCountLimitUnlimitedDurationTest(TargetFramework appTfm)
         {
             const int ExpectedActionExecutionCount = 3;
             TimeSpan ClockIncrementDuration = TimeSpan.FromMilliseconds(10);
@@ -469,7 +469,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
         /// </summary>
         [Theory]
         [MemberData(nameof(GetTfmsSupportingPortListener))]
-        public Task CollectionRulePipeline_ActionCountLimitSlidingDurationTest(TargetFrameworkMoniker appTfm)
+        public Task CollectionRulePipeline_ActionCountLimitSlidingDurationTest(TargetFramework appTfm)
         {
             const int IterationCount = 5;
             const int ExpectedActionExecutionCount = 3;
@@ -574,14 +574,14 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
 
         public static IEnumerable<object[]> GetTfmsSupportingPortListener()
         {
-            yield return new object[] { TargetFrameworkMoniker.Net60 };
-            yield return new object[] { TargetFrameworkMoniker.Net70 };
-            yield return new object[] { TargetFrameworkMoniker.Net80 };
+            yield return new object[] { TargetFramework.Net60 };
+            yield return new object[] { TargetFramework.Net70 };
+            yield return new object[] { TargetFramework.Net80 };
         }
 
         public static IEnumerable<object[]> GetCurrentTfm()
         {
-            yield return new object[] { TargetFrameworkMoniker.Net80 };
+            yield return new object[] { TargetFramework.Net80 };
         }
     }
 }

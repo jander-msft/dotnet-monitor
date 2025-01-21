@@ -4,7 +4,7 @@
 namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests.Options
 {
     /*
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TargetFrameworks.CurrentAssembly)]
     public class S3StorageEgressProviderOptionsTests
     {
         private S3StorageEgressProviderOptions _options = new()

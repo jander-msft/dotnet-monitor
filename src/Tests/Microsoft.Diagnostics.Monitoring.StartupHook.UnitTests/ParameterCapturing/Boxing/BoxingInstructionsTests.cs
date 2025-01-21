@@ -12,7 +12,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Diagnostics.Monitoring.StartupHook.UnitTests.ParameterCapturing.Boxing
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TestCommon.TargetFrameworks.CurrentAssembly)]
     public class BoxingInstructionsTests
     {
         private readonly ITestOutputHelper _outputHelper;

@@ -6,48 +6,48 @@ using Xunit;
 
 namespace Microsoft.Diagnostics.Monitoring.TestCommon
 {
-    public static partial class TargetFrameworkMonikerExtensions
+    public static partial class TargetFrameworkExtensions
     {
-        public static Version GetAspNetCoreFrameworkVersion(this TargetFrameworkMoniker moniker)
+        public static Version GetAspNetCoreFrameworkVersion(this TargetFramework moniker)
         {
             return ParseVersionRemoveLabel(moniker.GetAspNetCoreFrameworkVersionString());
         }
 
-        public static string GetAspNetCoreFrameworkVersionString(this TargetFrameworkMoniker moniker)
+        public static string GetAspNetCoreFrameworkVersionString(this TargetFramework moniker)
         {
             switch (moniker)
             {
-                case TargetFrameworkMoniker.Current:
+                case TargetFramework.Current:
                     return TestDotNetHost.CurrentAspNetCoreVersionString;
-                case TargetFrameworkMoniker.NetCoreApp31:
+                case TargetFramework.NetCoreApp31:
                     return TestDotNetHost.AspNetCore31VersionString;
-                case TargetFrameworkMoniker.Net50:
+                case TargetFramework.Net50:
                     return TestDotNetHost.AspNetCore50VersionString;
-                case TargetFrameworkMoniker.Net60:
+                case TargetFramework.Net60:
                     return TestDotNetHost.AspNetCore60VersionString;
-                case TargetFrameworkMoniker.Net70:
+                case TargetFramework.Net70:
                     return TestDotNetHost.AspNetCore70VersionString;
-                case TargetFrameworkMoniker.Net80:
+                case TargetFramework.Net80:
                     return TestDotNetHost.AspNetCore80VersionString;
             }
             throw CreateUnsupportedException(moniker);
         }
 
-        public static string GetNetCoreAppFrameworkVersionString(this TargetFrameworkMoniker moniker)
+        public static string GetNetCoreAppFrameworkVersionString(this TargetFramework moniker)
         {
             switch (moniker)
             {
-                case TargetFrameworkMoniker.Current:
+                case TargetFramework.Current:
                     return TestDotNetHost.CurrentNetCoreVersionString;
-                case TargetFrameworkMoniker.NetCoreApp31:
+                case TargetFramework.NetCoreApp31:
                     return TestDotNetHost.NetCore31VersionString;
-                case TargetFrameworkMoniker.Net50:
+                case TargetFramework.Net50:
                     return TestDotNetHost.NetCore50VersionString;
-                case TargetFrameworkMoniker.Net60:
+                case TargetFramework.Net60:
                     return TestDotNetHost.NetCore60VersionString;
-                case TargetFrameworkMoniker.Net70:
+                case TargetFramework.Net70:
                     return TestDotNetHost.NetCore70VersionString;
-                case TargetFrameworkMoniker.Net80:
+                case TargetFramework.Net80:
                     return TestDotNetHost.NetCore80VersionString;
             }
             throw CreateUnsupportedException(moniker);
@@ -55,14 +55,14 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon
 
         // Checks if the specified moniker is the same as the test value or if it is Current
         // then matches the same TFM for which this assembly was built.
-        public static bool IsEffectively(this TargetFrameworkMoniker moniker, TargetFrameworkMoniker test)
+        public static bool IsEffectively(this TargetFramework moniker, TargetFramework test)
         {
-            if (TargetFrameworkMoniker.Current == test)
+            if (TargetFramework.Current == test)
             {
-                throw new ArgumentException($"Parameter {nameof(test)} cannot be TargetFrameworkMoniker.Current");
+                throw new ArgumentException($"Parameter {nameof(test)} cannot be TargetFramework.Current");
             }
 
-            return moniker == test || (TargetFrameworkMoniker.Current == moniker && CurrentTargetFrameworkMoniker == test);
+            return moniker == test || (TargetFramework.Current == moniker && TargetFrameworks.CurrentAssembly == test);
         }
 
         private static Version ParseVersionRemoveLabel(string versionString)

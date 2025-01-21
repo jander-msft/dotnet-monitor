@@ -22,7 +22,7 @@ using Xunit.Abstractions;
 
 namespace CollectionRuleActions.UnitTests
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TargetFrameworks.CurrentAssembly)]
     [Collection(TestCollections.CollectionRuleActions)]
     public sealed class LoadProfilerActionTests
     {
@@ -42,7 +42,7 @@ namespace CollectionRuleActions.UnitTests
         /// </summary>
         [Theory]
         [MemberData(nameof(ActionTestsHelper.GetTfmArchitectureProfilerPath), MemberType = typeof(ActionTestsHelper))]
-        public async Task LoadProfilerAsStartupProfilerTest(TargetFrameworkMoniker tfm, Architecture architecture, string profilerPath)
+        public async Task LoadProfilerAsStartupProfilerTest(TargetFramework tfm, Architecture architecture, string profilerPath)
         {
             string profilerFileName = Path.GetFileName(profilerPath);
 

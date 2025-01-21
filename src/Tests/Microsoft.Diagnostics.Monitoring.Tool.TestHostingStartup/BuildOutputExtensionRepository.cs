@@ -40,7 +40,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.TestHostingStartup
                 BuildOutput.RootPath,
                 extensionName,
                 BuildOutput.ConfigurationName,
-                TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker.ToFolderName());
+                TargetFrameworks.CurrentAssembly.ToFolderName());
         }
 
         private IExtension CreateProgramExtension(string extensionName, string extensionPath)

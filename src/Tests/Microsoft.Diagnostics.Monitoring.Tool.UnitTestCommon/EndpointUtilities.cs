@@ -92,7 +92,7 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon
             return new ServerSourceHolder(source, transportName);
         }
 
-        public AppRunner CreateAppRunner(Assembly testAssembly, string transportName, TargetFrameworkMoniker tfm, int appId = 1)
+        public AppRunner CreateAppRunner(Assembly testAssembly, string transportName, TargetFramework tfm, int appId = 1)
         {
             AppRunner appRunner = new(_outputHelper, testAssembly, appId, tfm);
             appRunner.ConnectionMode = DiagnosticPortConnectionMode.Connect;

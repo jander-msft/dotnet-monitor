@@ -10,7 +10,7 @@ using static Microsoft.Diagnostics.Tools.Monitor.ParameterCapturing.ParameterCap
 
 namespace Microsoft.Diagnostics.Monitoring.StartupHook.UnitTests.ParameterCapturing.ObjectFormatting.Formatters
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TestCommon.TargetFrameworks.CurrentAssembly)]
     public class RuntimeFormattersTests
     {
         [Theory]

@@ -97,7 +97,7 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon.Runners
 
         public bool EnableMonitorStartupHook { get; set; }
 
-        public AppRunner(ITestOutputHelper outputHelper, Assembly testAssembly, int appId = 1, TargetFrameworkMoniker tfm = TargetFrameworkMoniker.Current)
+        public AppRunner(ITestOutputHelper outputHelper, Assembly testAssembly, int appId = 1, TargetFramework tfm = TargetFramework.Current)
         {
             AppId = appId;
 
@@ -111,7 +111,7 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon.Runners
             _startupHookPath = AssemblyHelper.GetAssemblyArtifactBinPath(
                 testAssembly,
                 "Microsoft.Diagnostics.Monitoring.StartupHook",
-                TargetFrameworkMoniker.Net60);
+                TargetFramework.Net60);
 
             _waitingForEnvironmentVariables = new Dictionary<string, TaskCompletionSource<string>>();
 

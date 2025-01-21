@@ -10,14 +10,14 @@ namespace Microsoft.Diagnostics.Monitoring.TestCommon
         public static string GetAssemblyArtifactBinPath(
             Assembly testAssembly,
             string assemblyName,
-            TargetFrameworkMoniker tfm = TargetFrameworkMoniker.Current)
+            TargetFramework tfm = TargetFramework.Current)
         {
             string assemblyPath = testAssembly.Location
                 .Replace(testAssembly.GetName().Name, assemblyName);
 
-            if (tfm != TargetFrameworkMoniker.Current)
+            if (tfm != TargetFramework.Current)
             {
-                string currentFolderName = TestDotNetHost.BuiltTargetFrameworkMoniker.ToFolderName();
+                string currentFolderName = TestDotNetHost.BuiltTargetFramework.ToFolderName();
                 string targetFolderName = tfm.ToFolderName();
 
                 assemblyPath = assemblyPath.Replace(currentFolderName, targetFolderName);

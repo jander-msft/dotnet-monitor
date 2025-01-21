@@ -6,13 +6,13 @@ using Xunit.Sdk;
 
 namespace Microsoft.Diagnostics.Monitoring.TestCommon
 {
-    [TraitDiscoverer("Microsoft.Diagnostics.Monitoring.TestCommon.TargetFrameworkMonikerTraitDiscoverer", "Microsoft.Diagnostics.Monitoring.TestCommon")]
+    [TraitDiscoverer("Microsoft.Diagnostics.Monitoring.TestCommon.TargetFrameworkTraitDiscoverer", "Microsoft.Diagnostics.Monitoring.TestCommon")]
     [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Assembly, AllowMultiple = true)]
-    public class TargetFrameworkMonikerTraitAttribute :
+    public class TargetFrameworkTraitAttribute :
         Attribute,
         ITraitAttribute
     {
-        public TargetFrameworkMonikerTraitAttribute(TargetFrameworkMoniker targetFrameworkMoniker)
+        public TargetFrameworkTraitAttribute(TargetFramework targetFramework)
         {
         }
     }

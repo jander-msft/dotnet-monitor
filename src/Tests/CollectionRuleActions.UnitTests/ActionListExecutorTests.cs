@@ -21,7 +21,7 @@ using Xunit.Abstractions;
 
 namespace CollectionRuleActions.UnitTests
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TargetFrameworks.CurrentAssembly)]
     [Collection(TestCollections.CollectionRuleActions)]
     public sealed class ActionListExecutorTests
     {

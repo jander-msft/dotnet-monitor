@@ -25,7 +25,7 @@ namespace Microsoft.Diagnostics.Monitoring.Tool.UnitTests
     internal static class CollectionRulePipelineTestsHelper
     {
         internal static async Task ExecuteScenario(
-            TargetFrameworkMoniker tfm,
+            TargetFramework tfm,
             string scenarioName,
             string collectionRuleName,
             Action<Tools.Monitor.RootOptions> setup,

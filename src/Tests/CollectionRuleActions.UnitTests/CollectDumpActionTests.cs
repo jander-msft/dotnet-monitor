@@ -21,7 +21,7 @@ using Xunit.Abstractions;
 
 namespace CollectionRuleActions.UnitTests
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TargetFrameworks.CurrentAssembly)]
     [Collection(TestCollections.CollectionRuleActions)]
     public sealed class CollectDumpActionTests
     {
@@ -38,7 +38,7 @@ namespace CollectionRuleActions.UnitTests
 
         [Theory(Skip = "Flaky")]
         [MemberData(nameof(ActionTestsHelper.GetTfmsAndDumpTypes), MemberType = typeof(ActionTestsHelper))]
-        public Task CollectDumpAction_Success(TargetFrameworkMoniker tfm, DumpType dumpType)
+        public Task CollectDumpAction_Success(TargetFramework tfm, DumpType dumpType)
         {
             return RetryUtilities.RetryAsync(
                 func: () => CollectDumpAction_SuccessCore(tfm, dumpType),
@@ -51,15 +51,15 @@ namespace CollectionRuleActions.UnitTests
         {
             // Code path should be unchanged between TFM and dump type
             return RetryUtilities.RetryAsync(
-                func: () => CollectDumpAction_SuccessCore(TargetFrameworkMoniker.Current, DumpType.Mini, artifactName: Guid.NewGuid().ToString("n")),
+                func: () => CollectDumpAction_SuccessCore(TargetFramework.Current, DumpType.Mini, artifactName: Guid.NewGuid().ToString("n")),
                 shouldRetry: (Exception ex) => ex is TaskCanceledException,
                 outputHelper: _outputHelper);
         }
 
-        private async Task CollectDumpAction_SuccessCore(TargetFrameworkMoniker tfm, DumpType dumpType, string artifactName = null)
+        private async Task CollectDumpAction_SuccessCore(TargetFramework tfm, DumpType dumpType, string artifactName = null)
         {
             // MacOS dumps inconsistently segfault the runtime on .NET 5: https://github.com/dotnet/dotnet-monitor/issues/174
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && tfm == TargetFrameworkMoniker.Net50)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && tfm == TargetFramework.Net50)
             {
                 return;
             }

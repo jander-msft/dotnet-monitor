@@ -28,7 +28,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Diagnostics.Monitoring.AzureBlobStorageTests.UnitTests
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TestCommon.TargetFrameworks.CurrentAssembly)]
     public class AzureBlobEgressProviderTests : IClassFixture<AzuriteFixture>, IDisposable
     {
         public const int EgressUnitTestTimeoutMs = 30 * 1000; // 30 seconds

@@ -25,7 +25,7 @@ using ProcessInfo = Microsoft.Diagnostics.Monitoring.WebApi.Models.ProcessInfo;
 
 namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TestCommon.TargetFrameworks.CurrentAssembly)]
     [Collection(DefaultCollectionFixture.Name)]
     public class StacksTests
     {

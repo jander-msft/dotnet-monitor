@@ -23,7 +23,7 @@ using Xunit.Sdk;
 
 namespace Microsoft.Diagnostics.Monitoring.Tool.FunctionalTests
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TestCommon.TargetFrameworks.CurrentAssembly)]
     [Collection(DefaultCollectionFixture.Name)]
     public class ProcessTests
     {

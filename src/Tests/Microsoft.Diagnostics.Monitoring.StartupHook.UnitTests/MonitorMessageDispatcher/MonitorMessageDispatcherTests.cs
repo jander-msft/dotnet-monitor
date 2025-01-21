@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Microsoft.Diagnostics.Monitoring.StartupHook.MonitorMessageDispatcher
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMoniker.Current)]
+    [TargetFrameworkTrait(TargetFramework.Current)]
     public sealed class MonitorMessageDispatcherTests
     {
         private struct SamplePayload : IEquatable<SamplePayload>

@@ -21,7 +21,7 @@ using Xunit.Abstractions;
 
 namespace CollectionRuleActions.UnitTests
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TargetFrameworks.CurrentAssembly)]
     [Collection(TestCollections.CollectionRuleActions)]
     public sealed class CollectTraceActionTests
     {
@@ -38,7 +38,7 @@ namespace CollectionRuleActions.UnitTests
 
         [Theory]
         [MemberData(nameof(ActionTestsHelper.GetTfmsAndTraceProfiles), MemberType = typeof(ActionTestsHelper))]
-        public async Task CollectTraceAction_ProfileSuccess(TargetFrameworkMoniker tfm, TraceProfile traceProfile)
+        public async Task CollectTraceAction_ProfileSuccess(TargetFramework tfm, TraceProfile traceProfile)
         {
             using TemporaryDirectory tempDirectory = new(_outputHelper);
 
@@ -60,7 +60,7 @@ namespace CollectionRuleActions.UnitTests
 
         [Theory]
         [MemberData(nameof(ActionTestsHelper.GetTfms), MemberType = typeof(ActionTestsHelper))]
-        public async Task CollectTraceAction_ProvidersSuccess(TargetFrameworkMoniker tfm)
+        public async Task CollectTraceAction_ProvidersSuccess(TargetFramework tfm)
         {
             List<EventPipeProvider> ExpectedProviders =
             [
@@ -99,10 +99,10 @@ namespace CollectionRuleActions.UnitTests
                         options.Duration = TimeSpan.FromSeconds(2);
                     })
                     .SetStartupTrigger();
-            }, host => PerformTrace(host, TargetFrameworkMoniker.Current, artifactName));
+            }, host => PerformTrace(host, TargetFramework.Current, artifactName));
         }
 
-        private async Task PerformTrace(IHost host, TargetFrameworkMoniker tfm, string artifactName = null)
+        private async Task PerformTrace(IHost host, TargetFramework tfm, string artifactName = null)
         {
             CollectTraceOptions options = ActionTestsHelper.GetActionOptions<CollectTraceOptions>(host, DefaultRuleName);
 

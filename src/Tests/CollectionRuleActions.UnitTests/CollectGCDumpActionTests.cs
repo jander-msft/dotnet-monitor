@@ -21,7 +21,7 @@ using Xunit.Abstractions;
 
 namespace CollectionRuleActions.UnitTests
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TargetFrameworks.CurrentAssembly)]
     [Collection(TestCollections.CollectionRuleActions)]
     public sealed class CollectGCDumpActionTests
     {
@@ -38,7 +38,7 @@ namespace CollectionRuleActions.UnitTests
 
         [Theory]
         [MemberData(nameof(ActionTestsHelper.GetTfms), MemberType = typeof(ActionTestsHelper))]
-        public Task CollectGCDumpAction_Success(TargetFrameworkMoniker tfm)
+        public Task CollectGCDumpAction_Success(TargetFramework tfm)
         {
             return RetryUtilities.RetryAsync(
                 func: () => CollectGCDumpAction_SuccessCore(tfm),
@@ -55,14 +55,14 @@ namespace CollectionRuleActions.UnitTests
         public Task CollectGCDumpAction_CustomArtifactName()
         {
             return RetryUtilities.RetryAsync(
-                func: () => CollectGCDumpAction_SuccessCore(TargetFrameworkMoniker.Current, artifactName: Guid.NewGuid().ToString("n")),
+                func: () => CollectGCDumpAction_SuccessCore(TargetFramework.Current, artifactName: Guid.NewGuid().ToString("n")),
                 shouldRetry: (Exception ex) => (
                     ex is TaskCanceledException ||
                     (ex is CollectionRuleActionException && ex.InnerException is InvalidOperationException)),
                 outputHelper: _outputHelper);
         }
 
-        private async Task CollectGCDumpAction_SuccessCore(TargetFrameworkMoniker tfm, string artifactName = null)
+        private async Task CollectGCDumpAction_SuccessCore(TargetFramework tfm, string artifactName = null)
         {
             using TemporaryDirectory tempDirectory = new(_outputHelper);
 

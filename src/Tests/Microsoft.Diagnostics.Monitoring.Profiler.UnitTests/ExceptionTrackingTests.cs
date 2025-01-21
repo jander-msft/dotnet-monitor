@@ -17,7 +17,7 @@ using Xunit.Sdk;
 
 namespace Microsoft.Diagnostics.Monitoring.Profiler.UnitTests
 {
-    [TargetFrameworkMonikerTrait(TargetFrameworkMonikerExtensions.CurrentTargetFrameworkMoniker)]
+    [TargetFrameworkTrait(TestCommon.TargetFrameworks.CurrentAssembly)]
     public sealed class ExceptionTrackingTests
     {
         private const string IgnoreOutputPrefix = "[ignore]";
