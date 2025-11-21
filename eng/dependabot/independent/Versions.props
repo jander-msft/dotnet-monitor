@@ -2,10 +2,10 @@
   <!-- Import references updated by Dependabot. -->
 
   <PropertyGroup>
-    <AzureCoreVersion>1.46.0</AzureCoreVersion>
-    <AzureIdentityVersion>1.13.2</AzureIdentityVersion>
-    <AzureStorageBlobsVersion>12.24.0</AzureStorageBlobsVersion>
-    <AzureStorageQueuesVersion>12.22.0</AzureStorageQueuesVersion>
+    <AzureCoreVersion>1.50.0</AzureCoreVersion>
+    <AzureIdentityVersion>1.17.1</AzureIdentityVersion>
+    <AzureStorageBlobsVersion>12.26.0</AzureStorageBlobsVersion>
+    <AzureStorageQueuesVersion>12.24.0</AzureStorageQueuesVersion>
     <MicrosoftIdentityWebVersion>3.8.4</MicrosoftIdentityWebVersion>
     <MicrosoftOpenApiReadersVersion>1.6.24</MicrosoftOpenApiReadersVersion>
     <SystemPrivateUriVersion>4.3.2</SystemPrivateUriVersion>
